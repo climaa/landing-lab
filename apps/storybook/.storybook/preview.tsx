@@ -125,7 +125,7 @@ const preview: Preview = {
             // live slice of, and a page cannot share a name with its folder.
             ['Overview', 'Tokens'],
             'Atomic Design',
-            ['Layering Rule'],
+            ['Layering Rule', 'Rating Stars'],
             'QA',
             // Diff Policy first: it defines the capture matrix that Visual
             // Diff Workflow then describes running. The acceptance suite comes
