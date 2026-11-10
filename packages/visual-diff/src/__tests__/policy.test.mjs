@@ -139,12 +139,12 @@ describe('tierOf', () => {
     expect(tiers).toEqual(['screens', 'screens']);
   });
 
-  it("returns null for an app's route tree that is not listed yet", () => {
+  it("places a story in the web app's route tree as a screen", () => {
     const path = '../web/app/_screens/After.stories.tsx';
 
     const tier = tierOf(path);
 
-    expect(tier).toBeNull();
+    expect(tier).toBe('screens');
   });
 
   it("returns null for an unlisted app's app directory", () => {
@@ -420,10 +420,10 @@ describe('LEDGER.exempt', () => {
 });
 
 describe('APPS', () => {
-  // Every app that serves web routes is a screens app: today only the console.
-  // `apps/storybook` and `apps/e2e` serve none.
+  // Every app that serves web routes is a screens app: the console and the
+  // category pages. `apps/storybook` and `apps/e2e` serve none.
   it('names every app whose route tree places under the screens tier', () => {
-    const placed = ['visual-diff-ui', 'storybook', 'e2e'].filter(
+    const placed = ['visual-diff-ui', 'web', 'storybook', 'e2e'].filter(
       (app) => tierOf(`apps/${app}/app/page.stories.tsx`) === APP_TIER,
     );
 
@@ -431,7 +431,7 @@ describe('APPS', () => {
   });
 
   it('names each app by its directory under apps/', () => {
-    expect(APPS).toEqual(['visual-diff-ui']);
+    expect(APPS).toEqual(['visual-diff-ui', 'web']);
   });
 });
 

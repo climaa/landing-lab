@@ -51,6 +51,7 @@ describe('SECTIONS', () => {
  */
 const DECLARED_APPS: Record<App, true> = {
   'visual-diff-ui': true,
+  web: true,
 };
 
 describe('the declared App type', () => {

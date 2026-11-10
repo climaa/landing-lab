@@ -22,7 +22,7 @@ const CONSOLE_DIR = join(APPS_DIR, 'visual-diff-ui');
 /** Each storied app's root. Every one maps `@/*` to itself in its tsconfig, which is
  *  why `@/…` is resolved by {@link appAlias} rather than by an alias entry. The
  *  same apps, in the same order, as the policy's `APP_ROOTS`. */
-const STORIED_APPS = ['visual-diff-ui'].map((app) => join(APPS_DIR, app));
+const STORIED_APPS = ['visual-diff-ui', 'web'].map((app) => join(APPS_DIR, app));
 
 /** Forward slashes whatever the platform: Vite hands ids over posix-style. */
 const posix = (path: string) => path.replaceAll('\\', '/');
@@ -132,6 +132,7 @@ const config: StorybookConfig = {
   stories: [
     '../../../packages/ui/src/**/*.stories.tsx',
     '../../visual-diff-ui/app/**/*.stories.tsx',
+    '../../web/app/**/*.stories.tsx',
     '../src/**/*.mdx',
   ],
   framework: '@storybook/nextjs-vite',
@@ -142,7 +143,13 @@ const config: StorybookConfig = {
   // staticDirs sidesteps that pipeline entirely.
   // A screen's shots ride the same mechanism, at the addresses the console's
   // components build (`lib/shots.ts`), so no story rewrites a URL.
-  staticDirs: [{ from: '../../../designs/exports', to: '/designs' }, ...screenShots],
+  // The before page's star and avatar images ride it too, at the address the
+  // web app serves them.
+  staticDirs: [
+    { from: '../../../designs/exports', to: '/designs' },
+    ...screenShots,
+    { from: '../../web/public/before', to: '/before' },
+  ],
   // addon-docs: autodocs (`tags: ['autodocs']` in preview.ts) plus the thirteen
   // hand-written docs pages under src/docs, whose subdirectories mirror the
   // sidebar folders their <Meta title> puts them in. addon-a11y: axe in the panel, an

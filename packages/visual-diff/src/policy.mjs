@@ -134,11 +134,14 @@ const UI_SRCS = [
 /** The app directories whose stories are `screens`, named one by one rather than
  *  matched as every app's `app/`: every app that serves web routes, one section
  *  each (designs/STANDARD.md, "Every route is a screen"). Here the console comes
- *  first; landing-lab's own web app joins it here when it lands. A child lists its
+ *  first, then landing-lab's own category pages, `apps/web`. A child lists its
  *  own apps and captures its console review-only, since there it is the tool rather
  *  than the thing shot.
  *  @type {readonly (readonly string[])[]} */
-export const APP_ROOTS = [['apps', 'visual-diff-ui', 'app']];
+export const APP_ROOTS = [
+  ['apps', 'visual-diff-ui', 'app'],
+  ['apps', 'web', 'app'],
+];
 
 /** The name an {@link APP_ROOTS} entry gives its app: the directory under `apps/`,
  *  which is also what a screen's Storybook title names (`Screens/<App>/…`) and what
@@ -434,14 +437,22 @@ export const EXIT = {
  *  ceiling is on the whole directory. 15 MB since every route became a screen
  *  (designs/STANDARD.md) in the parent, where three apps' pages, each a page tall at
  *  both viewports in both themes, came to 14.4 MB, where the four
- *  design-system tiers fit in under 3 MB. The next screen raises it on purpose. */
-export const BASELINE_BUDGET_BYTES = 15_000_000;
+ *  design-system tiers fit in under 3 MB. The next screen raises it on purpose.
+ *
+ *  20 MB in landing-lab: the fixed category page (/after) is a hundred reviews long,
+ *  and its four full-page shots add about 5.8 MB to the 8.1 MB the seed kept. */
+export const BASELINE_BUDGET_BYTES = 20_000_000;
 
 /** Ceiling on one committed baseline. Under the total on purpose: a single PNG this
  *  large is a story rendering something it should not — a whole page shot as an atom,
  *  a photograph inlined into a fixture — and the corpus budget would not catch it until
- *  ten more had landed beside it. */
-export const BASELINE_PNG_BUDGET_BYTES = 512_000;
+ *  ten more had landed beside it.
+ *
+ *  2 MB in landing-lab, raised from the parent's 512 KB by the maintainer's decision
+ *  (landing-lab#3): the category page is shot whole, and a hundred reviews at 1280 px
+ *  come to about 1.3 MB, at 390 px to about 1.6 MB. Still well under the total, so a
+ *  shot that is not a page stands out. */
+export const BASELINE_PNG_BUDGET_BYTES = 2_000_000;
 
 /** Both budgets, over the set a caller is about to commit. Baselines live in git
  *  forever, so the ceilings are checked before a byte is written and a corpus that

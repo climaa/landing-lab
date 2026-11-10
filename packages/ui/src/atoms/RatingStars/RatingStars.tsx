@@ -12,8 +12,11 @@ export interface RatingStarsProps {
 
 const MAX = 5;
 
-/** The score as drawn: clamped, then rounded to the nearest half, ties up. */
-function drawnValue(value: number): number {
+/**
+ * The score as drawn: clamped, then rounded to the nearest half, ties up.
+ * Exported so a page that draws stars some other way rounds them identically.
+ */
+export function drawnValue(value: number): number {
   if (!Number.isFinite(value)) return 0;
 
   return Math.round(Math.min(Math.max(value, 0), MAX) * 2) / 2;

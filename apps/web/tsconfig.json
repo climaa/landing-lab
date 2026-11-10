@@ -1,0 +1,12 @@
+{
+  "extends": "@lab/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "allowJs": false,
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.mts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

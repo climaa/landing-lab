@@ -1,3 +1,7 @@
 {
-  "stories": ["screens-visual-diff-ui-shot--expanded"]
+  "stories": [
+    "screens-visual-diff-ui-shot--expanded",
+    "screens-web-after--default",
+    "screens-web-notfound--default"
+  ]
 }
