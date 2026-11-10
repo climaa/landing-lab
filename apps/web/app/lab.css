@@ -124,3 +124,156 @@
 .lab-link {
   color: var(--color-accent);
 }
+
+/* ---- Metrics strip ---- */
+.lab-page-strip {
+  max-inline-size: 72rem;
+  margin: var(--space-4) auto 0;
+  padding-inline: var(--space-6);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lab-strip {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  font-size: var(--text-sm);
+}
+
+.lab-strip__label {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.lab-strip__rows {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.lab-strip__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--space-6);
+}
+
+.lab-strip__row dt {
+  color: var(--color-text-muted);
+}
+
+.lab-strip__row dd {
+  margin: 0;
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.lab-strip__running {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-accent);
+}
+
+.lab-strip__error {
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-surface);
+  color: var(--color-warning-text);
+}
+
+.lab-pass {
+  color: var(--color-success-text);
+}
+
+.lab-fail {
+  color: var(--color-danger-text);
+}
+
+.lab-how {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---- Compare page ---- */
+.lab-compare {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.lab-compare__head h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+}
+
+.lab-compare__head p {
+  margin: var(--space-2) 0 0;
+}
+
+.lab-compare__strips,
+.lab-compare__frames {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.lab-compare__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.lab-compare__frame {
+  inline-size: 100%;
+  block-size: 75vh;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+/* Wide: both pages show; the tabs have nothing to choose between. */
+@media (min-width: 64rem) {
+  .lab-compare__tabs {
+    display: none;
+  }
+}
+
+/* Narrow: the strips stay side by side, the pages take turns. */
+@media (max-width: 63.999rem) {
+  .lab-compare {
+    padding: var(--space-4);
+  }
+
+  .lab-compare__head h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .lab-compare__frames {
+    grid-template-columns: 1fr;
+  }
+
+  .lab-compare__frame:not([data-shown]) {
+    display: none;
+  }
+}
+
+.lab-compare__frame--placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}

@@ -2,6 +2,7 @@
   "stories": [
     "screens-visual-diff-ui-shot--expanded",
     "screens-web-after--default",
+    "screens-web-compare--default",
     "screens-web-notfound--default"
   ]
 }

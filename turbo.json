@@ -71,6 +71,7 @@
         "$TURBO_ROOT$/designs/exports/**",
         "$TURBO_ROOT$/apps/visual-diff-ui/{app,components,lib,hooks,fixtures}/**",
         "$TURBO_ROOT$/apps/visual-diff-ui/scripts/project-name.mjs",
+        "$TURBO_ROOT$/apps/web/{app,components,lib,hooks,data,public}/**",
         "$TURBO_ROOT$/package.json"
       ],
       "outputs": ["storybook-static/**"]
