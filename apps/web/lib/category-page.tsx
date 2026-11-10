@@ -1,4 +1,5 @@
 import { CategoryScreen } from '@/components/CategoryScreen';
+import { PageStrip } from '@/components/PageStrip';
 import { CATEGORY } from '@/data/garden-designers';
 import { HeadLinks } from './head';
 import { hreflangLinks, jsonLdText, type Variant } from './seo';
@@ -30,6 +31,7 @@ export function CategoryPage({
         alternates={withAlternates ? hreflangLinks(variant) : []}
         jsonLd={jsonLdText(variant, CATEGORY.rating, CATEGORY.reviewCount)}
       />
+      <PageStrip label={variant === 'before' ? 'Before' : 'After'} path={path} />
       <CategoryScreen category={CATEGORY} variant={variant} path={path} lang={lang} />
     </>
   );

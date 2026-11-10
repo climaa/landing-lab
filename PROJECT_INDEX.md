@@ -21,7 +21,7 @@ apps/
   e2e/                 playwright-bdd acceptance suite; features/** is human-owned
 packages/
   ui/                  atoms · molecules · organisms · templates, token-only styling
-  visual-diff/         the visual-regression CLI + 256 committed baselines
+  visual-diff/         the visual-regression CLI + 260 committed baselines
   logger/              logging, Bugsink adapter, the analytics opt-out
   links/               URL builders the console imports
   tsconfig/            shared compiler options
@@ -32,7 +32,7 @@ scripts/               the gate, complexity ceiling, boards, index and leak chec
 ## 🚀 Entry Points
 
 - Console: `pnpm --filter @lab/visual-diff-ui dev` on :3300
-- Category pages: `pnpm --filter @lab/web dev` on :3400 (`/after`, `/before`)
+- Category pages: `pnpm --filter @lab/web dev` on :3400 (`/compare`, `/after`, `/before`)
 - Storybook: `pnpm --filter @lab/storybook dev`
 - The gate: `pnpm gate` (fast tier, also the Husky pre-push hook); `pnpm gate --tier full`
   adds visual-diff in the pinned container
@@ -53,5 +53,5 @@ scripts/               the gate, complexity ceiling, boards, index and leak chec
   `packages/visual-diff` 11 · `apps/storybook` 10 · `packages/logger` 3 · `apps/e2e` 2 ·
   `packages/links` 1; root `scripts/` and `.sandcastle/` 65
 - `apps/e2e`: 54 acceptance scenarios (the visual-diff console) and 1 local-lane scenario
-- `packages/visual-diff`: 256 committed baselines across atoms, molecules, organisms,
+- `packages/visual-diff`: 260 committed baselines across atoms, molecules, organisms,
   templates and the console's screens
