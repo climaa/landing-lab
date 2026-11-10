@@ -20,7 +20,7 @@ import { attributeValue } from './analytics-head.ts';
 
 /** The address the root redirect starts from, and so the one every share should
  *  fold back onto: `og:url` and the canonical both name it. */
-export const PUBLISHED_URL = 'https://storybook.carloslima.dev/';
+export const PUBLISHED_URL = 'https://landing-lab-storybook.vercel.app/';
 
 /** The manager's own name for itself: the `<title>` its template falls back to,
  *  and the suffix it puts on every page title. */
