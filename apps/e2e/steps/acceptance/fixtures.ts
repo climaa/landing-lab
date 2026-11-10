@@ -4,6 +4,7 @@ import { test as base } from 'playwright-bdd';
 import { Chrome } from '../../pages/chrome';
 import { ComparisonModal } from '../../pages/comparison-modal';
 import { ConsolePage } from '../../pages/console';
+import { LandingPage } from '../../pages/landing';
 import { ReportPage } from '../../pages/report';
 import { ShotView } from '../../pages/shot-view';
 import { guardAnalytics } from '../../support/analytics-guard';
@@ -20,6 +21,8 @@ export interface ScenarioState {
   /** What a navigation answered with, for the scenarios whose claim is the
    *  status code rather than anything on the page. */
   response?: Response | null;
+  /** What the SEO guard reported, and how its run exited, for the steps after it. */
+  seo?: { report: import('@lab/seo-guard').Report; exit?: 0 | 1 | 2 };
 }
 
 /** Page objects reach the steps as fixtures, never as `new` inside a step: two steps
@@ -34,14 +37,19 @@ export interface ScenarioState {
 export const test = base.extend<{
   chrome: Chrome;
   console: ConsolePage;
+  landing: LandingPage;
   report: ReportPage;
   modal: ComparisonModal;
   shot: ShotView;
   scenarioState: ScenarioState;
-  analyticsGuard: void;
+  /** The beacons that left the browser so far: always none, or the test fails. */
+  analyticsGuard: () => string[];
 }>({
   chrome: async ({ page }, use) => {
     await use(new Chrome(page));
+  },
+  landing: async ({ page }, use) => {
+    await use(new LandingPage(page));
   },
   console: async ({ page }, use) => {
     await use(new ConsolePage(page));
@@ -65,7 +73,7 @@ export const test = base.extend<{
   analyticsGuard: [
     async ({ context }, use) => {
       const leaked = await guardAnalytics(context);
-      await use();
+      await use(leaked);
       expect(leaked(), 'a Vercel Web Analytics beacon left the browser').toEqual([]);
     },
     { auto: true },

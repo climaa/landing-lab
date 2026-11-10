@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
 
 import { VD_HOSTS, type VdWorld, vdWorldDir } from './pages/visual-diff-hosts';
+import { WEB_URL } from './pages/web-host';
 
 // Generate Playwright specs from Gherkin .feature files + step definitions.
 // The returned path is where `bddgen` writes the generated specs.
@@ -144,8 +145,8 @@ export default defineConfig({
     // The category pages, built. Port 3400 is the web app's own `start` port,
     // which is also the origin its canonicals name when no deployment does.
     {
-      command: 'pnpm --filter @lab/web exec next start --port 3400',
-      url: 'http://localhost:3400/after',
+      command: `pnpm --filter @lab/web exec next start --port ${new URL(WEB_URL).port}`,
+      url: `${WEB_URL}/after`,
       reuseExistingServer: !isCI,
       timeout: 120_000,
     },

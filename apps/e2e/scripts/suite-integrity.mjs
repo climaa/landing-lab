@@ -125,12 +125,16 @@ const LANES = ['acceptance', 'local'];
  * smoke) went with it, whole: 34 scenarios. Dropping a feature file whole is the
  * maintainer's decision, recorded in landing-lab#1; none of the kept ones changed.
  *
+ * It was 54 until landing-lab.feature (19 scenarios) gave the lab's own pages
+ * their requirements: the rating stars, the measured comparison, the SEO guard
+ * and the analytics opt-out.
+ *
  * Exact equality, not a floor: a floor decays, and after ten more scenarios a
  * floor of 47 would permit deleting ten of them. Raising this alongside a new
  * scenario is a two-line diff; LOWERING it is a product decision and belongs in
  * its own hand-authored PR with the reason written down.
  */
-const EXPECTED_SCENARIOS = 54;
+const EXPECTED_SCENARIOS = 73;
 
 /** The two project selectors. Carrying both excludes a scenario from both. */
 const PROJECT_TAGS = ['@desktop', '@mobile'];
