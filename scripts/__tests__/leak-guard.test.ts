@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 // @ts-expect-error — plain .mjs with JSDoc types, no declaration file.
 import { findLeaks, parseDenylist } from '../leak-guard.mjs';
 
-const SCRIPT = resolve(import.meta.dirname, '..', 'leak-guard.mjs');
+const SCRIPT = resolve(__dirname, '../leak-guard.mjs');
 
 describe('parseDenylist', () => {
   it('keeps one term per line, trimmed, skipping blanks and comments', () => {
