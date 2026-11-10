@@ -20,6 +20,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
     "@lab/logger": "workspace:*",
+    "@lab/seo-guard": "workspace:*",
     "@lab/tsconfig": "workspace:*",
     "@lab/visual-diff": "workspace:*",
     "@playwright/test": "1.62.1",
