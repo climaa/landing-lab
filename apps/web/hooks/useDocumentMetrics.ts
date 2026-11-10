@@ -9,14 +9,48 @@ import {
   measureHtmlBytes,
 } from '@/lib/metrics';
 
+export interface SeoSummary {
+  errors: number;
+  warnings: number;
+  /** The rules that fired, in the guard's order. */
+  rules: string[];
+}
+
 export interface StripState {
   status: 'measuring' | 'measured' | 'error';
   dom?: DomMetrics;
   htmlBytes?: number;
   axe: { status: 'idle' | 'running' | 'done' | 'error'; result?: AxeResult };
+  /** The SEO guard's answer for the page; absent where nothing asks for one. */
+  seo?: { status: 'loading' | 'done' | 'error'; summary?: SeoSummary };
 }
 
-export const INITIAL_STRIP: StripState = { status: 'measuring', axe: { status: 'idle' } };
+export const INITIAL_STRIP: StripState = {
+  status: 'measuring',
+  axe: { status: 'idle' },
+  seo: { status: 'loading' },
+};
+
+/** What `/api/seo` answers, reduced to what the strip shows. */
+export async function fetchSeoSummary(
+  path: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<SeoSummary> {
+  const response = await fetchImpl(`/api/seo?path=${encodeURIComponent(path)}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error(`/api/seo answered ${response.status}`);
+  const { page, summary } = (await response.json()) as {
+    page: { findings: { rule: string; severity: string }[] };
+    summary: { errors: number; warnings: number };
+  };
+
+  return {
+    errors: summary.errors,
+    warnings: summary.warnings,
+    rules: [...new Set(page.findings.map((finding) => finding.rule))],
+  };
+}
 
 /** After the browser has nothing else to do, so hydration has settled the DOM. */
 const whenIdle = (win: Window) =>
@@ -43,6 +77,12 @@ export function useDocumentMetrics(path: string) {
         setState((previous) => ({ ...previous, status: 'measured', dom, htmlBytes }));
       } catch {
         setState((previous) => ({ ...previous, status: 'error' }));
+      }
+      try {
+        const summary = await fetchSeoSummary(path);
+        setState((previous) => ({ ...previous, seo: { status: 'done', summary } }));
+      } catch {
+        setState((previous) => ({ ...previous, seo: { status: 'error' } }));
       }
     },
     [path],

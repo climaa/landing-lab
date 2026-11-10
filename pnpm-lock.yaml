@@ -229,6 +229,9 @@ importers:
       '@lab/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@lab/seo-guard':
+        specifier: workspace:*
+        version: link:../../packages/seo-guard
       '@lab/ui':
         specifier: workspace:*
         version: link:../../packages/ui

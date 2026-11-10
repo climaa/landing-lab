@@ -39,7 +39,12 @@ export function PageStrip({ label, path }: { label: string; path: string }) {
 
   return (
     <div className="lab-page-strip" {...{ [IGNORE_ATTRIBUTE]: '' }}>
-      <MetricsStrip label={label} state={state} onRunAxe={() => void audit(window)} />
+      <MetricsStrip
+        label={label}
+        state={state}
+        path={path}
+        onRunAxe={() => void audit(window)}
+      />
       <HowMeasured />
     </div>
   );

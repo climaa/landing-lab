@@ -57,6 +57,7 @@ export function CompareScreen({ before, after, onRunBoth }: CompareScreenProps) 
             key={side.label}
             label={side.label}
             state={side.state}
+            path={side.placeholder ? undefined : side.src}
             onRunAxe={side.onRunAxe}
           />
         ))}

@@ -6,6 +6,8 @@ export interface MetricsStripProps {
   label: string;
   state: StripState;
   onRunAxe?: () => void;
+  /** The page's path, which the SEO row links its report to. */
+  path?: string;
 }
 
 const COUNT = new Intl.NumberFormat('en-GB');
@@ -56,12 +58,28 @@ function Accessibility({
   );
 }
 
+function Seo({ seo, path }: { seo: NonNullable<StripState['seo']>; path?: string }) {
+  if (seo.status === 'loading') return <Skeleton width={12} />;
+  if (seo.status === 'error' || !seo.summary) return <span>—</span>;
+  const { errors } = seo.summary;
+  if (errors === 0) return <span className="lab-pass">✓ No findings</span>;
+  const text = `✗ ${COUNT.format(errors)} ${errors === 1 ? 'finding' : 'findings'}`;
+
+  return path ? (
+    <a className="lab-fail" href={`/api/seo?path=${encodeURIComponent(path)}`}>
+      {text}
+    </a>
+  ) : (
+    <span className="lab-fail">{text}</span>
+  );
+}
+
 /**
  * One page's numbers. Presentational: the values arrive measured, and the strip
  * only lays them out. It marks itself with `data-metrics-ignore`, so a page that
  * shows its own strip is measured without it.
  */
-export function MetricsStrip({ label, state, onRunAxe }: MetricsStripProps) {
+export function MetricsStrip({ label, state, onRunAxe, path }: MetricsStripProps) {
   const { dom, htmlBytes } = state;
   const missing = dom?.imagesWithoutAlt ?? 0;
   const rows: [string, string | undefined, string?][] = [
@@ -97,6 +115,14 @@ export function MetricsStrip({ label, state, onRunAxe }: MetricsStripProps) {
             <Accessibility state={state} onRunAxe={onRunAxe} />
           </dd>
         </div>
+        {state.seo && (
+          <div className="lab-strip__row">
+            <dt>SEO</dt>
+            <dd>
+              <Seo seo={state.seo} path={path} />
+            </dd>
+          </div>
+        )}
       </dl>
       {state.status === 'error' && (
         <p className="lab-strip__error">Could not measure this page.</p>
