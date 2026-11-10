@@ -23,6 +23,7 @@ packages/
   ui/                  atoms · molecules · organisms · templates, token-only styling
   visual-diff/         the visual-regression CLI + 260 committed baselines
   logger/              logging, Bugsink adapter, the analytics opt-out
+  seo-guard/           a crawler-eye check of canonicals, hreflang and JSON-LD (CLI + library)
   links/               URL builders the console imports
   tsconfig/            shared compiler options
 designs/               the .pen boards and their exports (designs/STANDARD.md)
@@ -44,7 +45,7 @@ scripts/               the gate, complexity ceiling, boards, index and leak chec
   (dependsOn `@lab/visual-diff-ui#build`, uncached), `health` (its `inputs` include
   `scripts/complexity-gate.mjs`)
 - `scripts/gate/manifest.mjs` — the gate as data: lint, typecheck, build, test, format,
-  health, leak, boards, sandcastle, e2e (fast); visual-diff (full)
+  health, seo, leak, boards, sandcastle, e2e (fast); visual-diff (full)
 - `pnpm-workspace.yaml` — `minimumReleaseAge` three days, `engineStrict`
 
 ## 🧪 Tests

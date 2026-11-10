@@ -103,6 +103,13 @@ export const CHECKS = [
     why: 'Cognitive-complexity ceiling of 20 per function, plus .sandcastle/; no Vitest skip/only.',
   },
   {
+    name: 'seo',
+    job: 'checks',
+    command: 'pnpm turbo run build --filter=@lab/web && node scripts/seo-check.mjs',
+    tier: 'fast',
+    why: 'The built category pages read as a crawler reads them: the sitemap passes packages/seo-guard, and /before still fails it.',
+  },
+  {
     name: 'leak',
     job: 'checks',
     command: 'node scripts/leak-guard.mjs',
