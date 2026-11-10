@@ -108,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             without this, each login-protected preview would report the reviewer
             clicking through it into the same dataset as the live console.
 
-            Same gate apps/blog uses, and the reasoning it rests on is measured
+            Same gate every app here uses, and the reasoning it rests on is measured
             once for both in Docs/DevOps/Web Analytics rather than restated
             here. The short of it: what the gate withholds is the component, not
             a <script> — no build's HTML carries the beacon's tag, because the

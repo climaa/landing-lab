@@ -7,11 +7,10 @@ findings, never from ambition.
 ## Stack & versions
 
 - pnpm **11.20.0** (pinned via `packageManager` + sha512), Node **22** (`.nvmrc`)
-- Turborepo monorepo: `apps/{blog}`, `packages/{ui,tsconfig}` — Storybook, e2e and
-  `packages/visual-diff` arrive by issue
-- TypeScript strict; ESLint runs today only in `apps/blog` (via `eslint .` on
-  ESLint 9 flat config, no `--max-warnings=0`) — treat warnings as errors, and
-  keep doing so as the other workspaces gain lint
+- Turborepo monorepo: `apps/{storybook,visual-diff-ui,e2e}`,
+  `packages/{ui,visual-diff,logger,links,tsconfig}` — the landing app and the SEO
+  guard arrive by issue
+- TypeScript strict; ESLint on ESLint 9 flat config — treat warnings as errors
 - **`pnpm format:check`** — Prettier over `**/*.{ts,mts,tsx,md,mdx,json,css}`.
   Docs and Markdown count. `pnpm format` fixes.
 - **`pnpm health:check`** — cognitive-complexity ceiling of **20** per function
@@ -39,8 +38,8 @@ findings, never from ambition.
   capture URL both set `data-theme` explicitly; a media-query theme would leave
   both blind to dark mode, since a capture pipeline needs a theme it chose, never
   one the capture machine's OS happened to be set to — that rule is absolute
-  there. The blog's pre-hydration script (`apps/blog/lib/theme.ts`) is the one
-  documented exception: it may consult `prefers-color-scheme` exactly once, as a
+  there. A pre-hydration theme script (as in the blog of acceptance-gate, this
+  repository's parent) is the one documented exception: it may consult `prefers-color-scheme` exactly once, as a
   first-visit default when no explicit stored choice exists yet, and only
   because the result still funnels into the same `[data-theme]` attribute the
   toggle writes — an explicit stored choice always wins over it, in either

@@ -20,21 +20,19 @@ pnpm --filter @lab/e2e exec playwright install chromium   # first run only
 turbo run e2e
 ```
 
-`turbo run e2e` is the entry point that matters: the task depends on `@lab/blog#build`
-and `@lab/visual-diff-ui#build`, so what the suite boots is what the build produced —
-production behavior (draft filtering, prerendered routes, real cache invalidation), not
-a dev server's. Browsers are **not** installed by `pnpm install`; without the
+`turbo run e2e` is the entry point that matters: the task depends on
+`@lab/visual-diff-ui#build`, so what the suite boots is what the build produced —
+production behavior (prerendered routes, real cache invalidation), not a dev server's. Browsers are **not** installed by `pnpm install`; without the
 `playwright install chromium` step the first run fails asking for it.
 
 ## What boots when you run it
 
-The config starts three servers, all from built output. None of them is the dev server:
+The config starts two servers, both from built output. Neither is the dev server:
 
-| Server               | Port   | What it is                                                           |
-| -------------------- | ------ | -------------------------------------------------------------------- |
-| blog                 | `3100` | `next start` of `@lab/blog` — not 3000, so a dev server can stay up |
-| visual-diff `seeded` | `3200` | the console on a seeded, read-only data tree                         |
-| visual-diff `sample` | `3201` | the console on an **empty** data tree — fixture-fallback mode        |
+| Server               | Port   | What it is                                                    |
+| -------------------- | ------ | ------------------------------------------------------------- |
+| visual-diff `seeded` | `3200` | the console on a seeded, read-only data tree                  |
+| visual-diff `sample` | `3201` | the console on an **empty** data tree — fixture-fallback mode |
 
 There used to be a fourth on `3202` — a tree the `@mutating` scenarios were allowed to
 wreck. Those requirements now live in the local lane, against your own captures, so this

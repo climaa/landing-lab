@@ -124,9 +124,7 @@ describe('the sidebar order and the docs pages on disk agree', () => {
 const OWN_PROPERTY_LINK = /\]\((https:\/\/(?:[a-z-]+\.)?carloslima\.dev[^)]*)\)/g;
 const EXEMPT_HOST = 'storybook.carloslima.dev';
 
-const proseLinks = [
-  { dir: DOCS_DIR, source: 'storybook' },
-].flatMap(({ dir, source }) =>
+const proseLinks = [{ dir: DOCS_DIR, source: 'storybook' }].flatMap(({ dir, source }) =>
   mdxFilesIn(dir).flatMap((file) =>
     [...fs.readFileSync(file, 'utf8').matchAll(OWN_PROPERTY_LINK)]
       .map(([, url]) => ({

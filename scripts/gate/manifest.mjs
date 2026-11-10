@@ -103,6 +103,13 @@ export const CHECKS = [
     why: 'Cognitive-complexity ceiling of 20 per function, plus .sandcastle/; no Vitest skip/only.',
   },
   {
+    name: 'leak',
+    job: 'checks',
+    command: 'node scripts/leak-guard.mjs',
+    tier: 'fast',
+    why: 'No tracked file names what a gitignored .leak-denylist lists: the lab is public and its brand fictional.',
+  },
+  {
     name: 'boards',
     job: 'checks',
     command: 'pnpm turbo run boards:check',

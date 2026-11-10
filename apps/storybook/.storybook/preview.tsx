@@ -111,9 +111,7 @@ const preview: Preview = {
     // (confirmed by reading manager-api's selectFirstStory(), which filters
     // on that type and never falls through to a docs-only page), so it
     // cannot land a bare visit on Docs by itself. What actually makes the
-    // deployed root URL open on Welcome is the redirect in ../vercel.json —
-    // which the blog's "Storybook" nav link (apps/blog/app/layout.tsx) also
-    // routes through, since it points at the bare origin with no slug.
+    // deployed root URL open on Welcome is the redirect in ../vercel.json.
     options: {
       storySort: {
         order: [
@@ -162,11 +160,6 @@ const preview: Preview = {
             'Skills',
             [
               'Overview',
-              // Adoption first: the optimizer and the prefetching skill both
-              // require the flag it sets, and Dev Loop is the one usable today.
-              'Cache Components Adoption',
-              'Cache Components Optimizer',
-              'Partial Prefetching Adoption',
               'Dev Loop',
               // The one skill of this repo's own closes the folder: it reads a
               // story against its tile, which only makes sense once the reader

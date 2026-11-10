@@ -57,10 +57,10 @@ pnpm e2e:ui:local                    # repo root: the same lane in UI Mode, vs Y
 pnpm --filter @lab/e2e check:local  # the local guard alone — no browser, no server
 ```
 
-`turbo run e2e` is the entry point that matters: the task depends on `@lab/blog#build`
-and `@lab/visual-diff-ui#build`, so what the suite boots is what the build produced.
-`playwright.config.ts` starts the blog with `next start` on port **3100** (not 3000 — a
-dev server may already hold that) and `E2E_BASE_URL` overrides the target for a run
+`turbo run e2e` is the entry point that matters: the task depends on
+`@lab/visual-diff-ui#build`, so what the suite boots is what the build produced.
+`playwright.config.ts` starts the console with `next start` on ports **3200** and **3201**,
+one per seeded world, and `E2E_BASE_URL` overrides the target for a run
 against an already-running deployment. That override is **local-only**: under `CI` the
 config throws rather than honour it, because a merge-gating check that passes against a
 live deployment says nothing about the commit under review. It aims the blog suite

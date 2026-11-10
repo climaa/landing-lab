@@ -138,8 +138,5 @@ export default defineConfig({
   // Two servers, both BUILT — production behaviour, not a dev server's.
   // `turbo run e2e` builds the console first, via the task dependency in the
   // root turbo.json.
-  webServer: [
-    visualDiffServer('seeded'),
-    visualDiffServer('sample'),
-  ],
+  webServer: [visualDiffServer('seeded'), visualDiffServer('sample')],
 });

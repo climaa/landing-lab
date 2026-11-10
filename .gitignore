@@ -72,15 +72,12 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
-# Obsidian writes this wherever a vault is opened — including inside
-# apps/blog/content/posts, which is a natural vault root for writing drafts.
+# Obsidian writes this wherever a vault is opened.
 .obsidian/
-
-# The post `features/local/blog-content.feature` creates and removes again. Its
-# fixture unlinks it in teardown too, so this only catches the run that crashed
-# between the two — but that run would otherwise leave a fake post in the
-# directory the blog serves, one `git add -A` away from being published.
-apps/blog/content/posts/zz-local-lane-probe.mdx
 
 # Turborepo
 .turbo
+
+# The terms scripts/leak-guard.mjs refuses in tracked files. Never tracked:
+# a list of what must not appear is itself a mention.
+.leak-denylist

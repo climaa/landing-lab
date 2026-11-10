@@ -13,7 +13,7 @@ import { APP_NAME, SITE_OPEN_GRAPH, TITLE_TEMPLATE } from './site';
  * manual, a chat — and the address every preview folds it back onto.
  *
  * One function so that no page can set half of it, the same rule
- * apps/blog/lib/share.ts states. The ways a preview goes wrong are all
+ * acceptance-gate's blog states. The ways a preview goes wrong are all
  * omissions: a page with no `og:url` is previewed as the bare host, a page that
  * sets `openGraph` without the site fields loses `og:site_name` (Next merges
  * metadata shallowly, see `SITE_OPEN_GRAPH`), and a card with no alt text is an

@@ -1,8 +1,7 @@
 # The gate, thin form. Wave 3 added an `e2e` job to `gate.needs` — no
 # branch-protection edit ever needed again: `gate` is the only required check.
 #
-# `visual-diff` (below) is deliberately NOT in that list. Per
-# apps/blog/content/posts/visual-regression-with-agents.mdx: a numeric pixel
+# `visual-diff` (below) is deliberately NOT in that list. A numeric pixel
 # threshold stops being a safety net once change volume is high (an agent
 # refactoring thirty components in an afternoon), and "approving a baseline
 # has to cost the same as reviewing a code diff" — i.e. a person, in the PR,
@@ -45,15 +44,6 @@ env:
   # PR token) if dispatch ever loosens.
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-  # /changelog is built from a network fetch, and a build is the one place a
-  # test cannot reach past: the e2e lane starts an already-built app, and the
-  # vitest alias that stubs next/cache never runs during `next build`. So the
-  # stub is the build's own — apps/blog/fixtures/releases.ts — and it is set
-  # here, workflow-wide, because every job that builds the blog must be covered,
-  # not just the one named `build`. Vercel leaves it unset and fetches for real.
-  # Declared in turbo.json's build.env, so it reaches next build and so a fixture
-  # build and a real one never share a cache entry.
-  BLOG_RELEASES_FIXTURE: '1'
 
 # Draft PRs do not run the gate. GitHub has no draft filter at the `on:` level
 # — a draft fires opened/synchronize like any other PR — so the guard has to sit
@@ -65,7 +55,7 @@ env:
 # carry that case is a silent footgun. Say it out loud instead.
 #
 # Repeated per job because GitHub Actions does not support YAML anchors. The
-# `checks` matrix below shares the seven per-command jobs' steps, but a matrix
+# `checks` matrix below shares the eight per-command jobs' steps, but a matrix
 # cannot share this guard line, so all five jobs (checks, sandcastle, e2e,
 # visual-diff, gate) still carry their own copy. A new job added in a later
 # wave needs this line too — and, unless it's meant to stay informational like
@@ -94,7 +84,7 @@ jobs:
     # fail-fast: false is load-bearing. The default cancels the surviving legs
     # on the first failure; the run goes red either way (gate counts cancelled
     # as failure too), but losing those six results defeats the whole reason
-    # seven checks exist.
+    # eight checks exist.
     #
     # name: ${{ matrix.name }} keeps the check names byte-identical to the
     # pre-matrix jobs (lint, typecheck, …). Without it each leg renders as
@@ -131,6 +121,10 @@ jobs:
           # Every planned story has its tile, every board PNG its scale; needs the
           # Storybook build, so it is a turbo root task (designs/STANDARD.md).
           - { name: boards, run: pnpm turbo run boards:check }
+          # No tracked file names what the gitignored .leak-denylist lists. In CI
+          # there is no denylist, so this leg passes with a notice: the guard
+          # that counts is the pre-push one, on the machine that holds the list.
+          - { name: leak, run: node scripts/leak-guard.mjs }
     steps:
       - uses: actions/checkout@v7
       - run: corepack enable
@@ -164,14 +158,14 @@ jobs:
 
   e2e:
     # The acceptance suite (apps/e2e): Gherkin scenarios compiled by playwright-bdd,
-    # run against `next start` on the BUILT blog and, on three seeded data
-    # directories, the BUILT visual-diff console. In gate.needs, unlike visual-diff —
+    # run against `next start` on two seeded data directories of the BUILT
+    # visual-diff console. In gate.needs, unlike visual-diff —
     # this one has no baselines to approve, so a red is a binary claim about product
     # behavior rather than a judgment call about pixels.
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-24.04-arm
     # Same ceiling as `checks`, and for the same reason: the worst case is a cold
-    # Turbo cache paying for @lab/blog#build and @lab/visual-diff-ui#build before
+    # Turbo cache paying for @lab/visual-diff-ui#build before
     # a single scenario starts, which is every Dependabot run by design. Not
     # visual-diff's 30 — most of that budget is the container image pull this job
     # deliberately does not do. Must stay strictly ABOVE playwright.config.ts's
@@ -234,7 +228,7 @@ jobs:
       # together. It is off the critical path and now acts as the control.
       - run: pnpm --filter @lab/e2e exec playwright install chromium
       # `turbo run e2e`, not `pnpm --filter @lab/e2e test:e2e`: the task dependsOn
-      # @lab/blog#build and @lab/visual-diff-ui#build, so what the suite boots is
+      # @lab/visual-diff-ui#build, so what the suite boots is
       # what the build produced rather than whatever .next was lying around. Same
       # convention as every other job here — build what you need yourself, hit the
       # shared remote cache if `build` already primed it. CI=true is set by
@@ -405,10 +399,10 @@ jobs:
     # reports even when a needed job fails; it fails unless every result is
     # exactly 'success' (skipped/cancelled count as failure).
     #
-    # needs.checks.result is a single aggregate over the seven matrix legs: any
+    # needs.checks.result is a single aggregate over the eight matrix legs: any
     # leg failure -> failure, any leg cancelled -> cancelled, draft PR (the
     # job-level guard skips the whole job) -> skipped. The one thing lost
-    # versus seven separate jobs: the failure echo below no longer names which
+    # versus eight separate jobs: the failure echo below no longer names which
     # leg failed — the checks list still does, the log line just doesn't
     # repeat it.
     needs: [checks, sandcastle, e2e]

@@ -130,7 +130,7 @@ on the code. The adapter is
 `@lab/logger/bugsink`, and each app installs it once per realm:
 
 ```ts
-// apps/blog/instrumentation.ts — the server
+// apps/visual-diff-ui/instrumentation.ts — the server
 export const register = async (dsn = process.env.BUGSINK_DSN): Promise<void> => {
   if (process.env.NEXT_RUNTIME === 'edge') return;
 
@@ -143,7 +143,7 @@ export const register = async (dsn = process.env.BUGSINK_DSN): Promise<void> => 
 ```
 
 ```ts
-// apps/blog/instrumentation-client.ts — the browser
+// apps/visual-diff-ui/instrumentation-client.ts — the browser
 if (process.env.NEXT_PUBLIC_BUGSINK_DSN) {
   void installBugsink({
     dsn: process.env.NEXT_PUBLIC_BUGSINK_DSN,

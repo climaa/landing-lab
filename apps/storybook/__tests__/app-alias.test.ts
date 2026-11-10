@@ -32,7 +32,13 @@ describe('a `@/` specifier', () => {
 
   // The prefix trap: `apps/visual-diff-ui-archive` must not be read as `apps/visual-diff-ui`.
   it('written in an app whose name starts with a storied one resolves to none', () => {
-    const importer = path.join(REPO_ROOT, 'apps', 'visual-diff-ui-archive', 'app', 'page.tsx');
+    const importer = path.join(
+      REPO_ROOT,
+      'apps',
+      'visual-diff-ui-archive',
+      'app',
+      'page.tsx',
+    );
 
     expect(appRootFor(importer)).toBeUndefined();
   });

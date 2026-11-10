@@ -34,7 +34,7 @@ are already in this repo:
 - **`next-cache-components`** was split into the adoption and optimizer skills above. Those
   are its successors, not an alternative to it.
 - **`next-best-practices`** is no longer a skill at all. Its content now ships as the bundled
-  docs under `apps/blog/node_modules/next/dist/docs/` and the `AGENTS.md` / `CLAUDE.md` that
+  docs under `<app>/node_modules/next/dist/docs/` and the `AGENTS.md` / `CLAUDE.md` that
   `next dev` generates on Next.js 16.3+ — committed here in `fb99f06` (PR #208).
 - **`next-upgrade`** is no longer a skill. Migration guides ship in the bundled docs; upgrades
   run through `npx @next/codemod@latest upgrade`.

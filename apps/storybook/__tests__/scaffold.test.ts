@@ -120,11 +120,14 @@ describe('the corpus boundary', () => {
 describe('the framework’s React and Next', () => {
   // The framework needs both present. A second range here would let Storybook
   // render a different Next than the one the console ships.
-  it.each(['next', 'react', 'react-dom'])('%s is the range apps/visual-diff-ui pins', (name) => {
-    const ours = manifest.dependencies[name];
+  it.each(['next', 'react', 'react-dom'])(
+    '%s is the range apps/visual-diff-ui pins',
+    (name) => {
+      const ours = manifest.dependencies[name];
 
-    expect(ours).toBe(consoleManifest.dependencies[name]);
-  });
+      expect(ours).toBe(consoleManifest.dependencies[name]);
+    },
+  );
 });
 
 describe('vite', () => {

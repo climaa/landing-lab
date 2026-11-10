@@ -18,12 +18,16 @@ describe('the analytics guard in every lane', () => {
     const source = readFileSync(join(import.meta.dirname, '..', file), 'utf8');
 
     // Act
-    const guardFixture = /analyticsGuard:\s*\[[\s\S]*?guardAnalytics\(context\)[\s\S]*?\{\s*auto:\s*true\s*\}/.exec(
-      source,
-    );
+    const guardFixture =
+      /analyticsGuard:\s*\[[\s\S]*?guardAnalytics\(context\)[\s\S]*?\{\s*auto:\s*true\s*\}/.exec(
+        source,
+      );
 
     // Assert
     expect(source).toContain("from '../../support/analytics-guard'");
-    expect(guardFixture, `${file} has no automatic analyticsGuard fixture`).not.toBeNull();
+    expect(
+      guardFixture,
+      `${file} has no automatic analyticsGuard fixture`,
+    ).not.toBeNull();
   });
 });

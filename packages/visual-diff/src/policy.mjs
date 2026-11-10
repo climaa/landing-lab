@@ -138,9 +138,7 @@ const UI_SRCS = [
  *  own apps and captures its console review-only, since there it is the tool rather
  *  than the thing shot.
  *  @type {readonly (readonly string[])[]} */
-export const APP_ROOTS = [
-  ['apps', 'visual-diff-ui', 'app'],
-];
+export const APP_ROOTS = [['apps', 'visual-diff-ui', 'app']];
 
 /** The name an {@link APP_ROOTS} entry gives its app: the directory under `apps/`,
  *  which is also what a screen's Storybook title names (`Screens/<App>/…`) and what

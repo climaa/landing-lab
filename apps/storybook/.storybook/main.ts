@@ -22,9 +22,7 @@ const CONSOLE_DIR = join(APPS_DIR, 'visual-diff-ui');
 /** Each storied app's root. Every one maps `@/*` to itself in its tsconfig, which is
  *  why `@/…` is resolved by {@link appAlias} rather than by an alias entry. The
  *  same apps, in the same order, as the policy's `APP_ROOTS`. */
-const STORIED_APPS = ['visual-diff-ui'].map((app) =>
-  join(APPS_DIR, app),
-);
+const STORIED_APPS = ['visual-diff-ui'].map((app) => join(APPS_DIR, app));
 
 /** Forward slashes whatever the platform: Vite hands ids over posix-style. */
 const posix = (path: string) => path.replaceAll('\\', '/');
@@ -144,10 +142,7 @@ const config: StorybookConfig = {
   // staticDirs sidesteps that pipeline entirely.
   // A screen's shots ride the same mechanism, at the addresses the console's
   // components build (`lib/shots.ts`), so no story rewrites a URL.
-  staticDirs: [
-    { from: '../../../designs/exports', to: '/designs' },
-    ...screenShots,
-  ],
+  staticDirs: [{ from: '../../../designs/exports', to: '/designs' }, ...screenShots],
   // addon-docs: autodocs (`tags: ['autodocs']` in preview.ts) plus the thirteen
   // hand-written docs pages under src/docs, whose subdirectories mirror the
   // sidebar folders their <Meta title> puts them in. addon-a11y: axe in the panel, an
@@ -179,8 +174,8 @@ const config: StorybookConfig = {
     `${head ?? ''}${linkPreviewHead(readFileSync(WELCOME_MDX, 'utf8'))}${analyticsHead(process.env)}`,
   // GFM (tables, strikethrough, task lists) is not CommonMark — without this,
   // a pipe table in a docs page silently renders as one run-on paragraph of
-  // literal pipe characters instead of a <table>, same failure mode the blog's
-  // MDX pipeline had (apps/blog/lib/mdx.tsx) before it got the same plugin.
+  // literal pipe characters instead of a <table>, the same failure mode any MDX
+  // pipeline without the plugin has.
   // addon-docs's mdx-plugin reads this off `presets.apply('options', {})` —
   // Storybook resolves that hook from a field literally named `options` on
   // this config object, the same way `docs`/`core`/etc. resolve. Not part of
@@ -194,7 +189,7 @@ const config: StorybookConfig = {
     },
   },
   // @lab/ui's client components carry `'use client'` for the Next.js/webpack
-  // RSC pipeline the consuming apps need (apps/blog, apps/visual-diff-ui), and
+  // RSC pipeline the consuming apps need (apps/visual-diff-ui), and
   // so do the `next/dist` client modules `@storybook/nextjs-vite` pulls in.
   // This plain bundle has no RSC concept, drops the directive, and renders them
   // as client components either way — the drop is correct, not a bug. The

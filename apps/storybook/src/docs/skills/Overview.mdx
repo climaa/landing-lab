@@ -37,11 +37,9 @@ nothing in this repo enforces it:
 
 ## The four
 
-Each has its own page covering how to invoke it, what it needs, and the commands it runs:
-[Cache Components Adoption](?path=/docs/docs-skills-cache-components-adoption--docs) ·
-[Cache Components Optimizer](?path=/docs/docs-skills-cache-components-optimizer--docs) ·
-[Partial Prefetching Adoption](?path=/docs/docs-skills-partial-prefetching-adoption--docs) ·
-[Dev Loop](?path=/docs/docs-skills-dev-loop--docs)
+Each skill's own `SKILL.md` covers how to invoke it, what it needs and the commands it runs.
+The one usable against any running app, with no flag to flip first, has a page here:
+[Dev Loop](?path=/docs/docs-skills-dev-loop--docs).
 
 | Skill                                                                                                                                       | What it does                                                                                                                                | Needs                            |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
@@ -65,21 +63,24 @@ Three of the four sit behind one flag. Reading the "Needs" column as a graph:
 <Mermaid
   chart={`
 flowchart TD
-    A["cacheComponents: false<br/>(where apps/blog is today)"] --> B["next-cache-components-adoption"]
+    A["cacheComponents: false"] --> B["next-cache-components-adoption"]
     B --> C["cacheComponents: true"]
     C --> D["next-cache-components-optimizer"]
     C --> E["next-partial-prefetching-adoption"]
+    H["apps/visual-diff-ui<br/>(cacheComponents: true)"] --> C
     F["next-dev-loop"] -.->|"needs only a running dev server"| G["usable today"]
     style A fill:#f8d7da
     style C fill:#d4edda
+    style H fill:#d4edda
     style G fill:#d4edda
 `}
 />
 
-**`apps/blog` has not enabled Cache Components.** `apps/blog/next.config.mjs` carries no
-`cacheComponents` key, so the adoption skill is the only entry point of the three, and the
-other two cannot do anything useful until it has run. `next-dev-loop` is the exception —
-it needs nothing but `pnpm --filter @lab/blog dev`.
+**The console has Cache Components on.** `apps/visual-diff-ui/next.config.mjs` sets
+`cacheComponents: true`, so it starts past the adoption skill: the optimizer and the
+prefetching skill apply to it directly. A new app starts at the top of the graph.
+`next-dev-loop` needs nothing but a running dev server, such as
+`pnpm --filter @lab/visual-diff-ui dev`.
 
 That ordering is the practical value of having them committed together: the dependency is
 recorded in the skills' own prerequisites rather than in someone's memory.

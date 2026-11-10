@@ -6,11 +6,7 @@ import type { Readable } from 'node:stream';
 import { buildSummary } from '@lab/visual-diff/artifacts';
 import { pngSize } from '@lab/visual-diff/capture';
 import { type CaptureShot, type Comparison, compareAll } from '@lab/visual-diff/compare';
-import {
-  type Ledger,
-  pairLedgers,
-  serializeLedgerReport,
-} from '@lab/visual-diff/ledger';
+import { type Ledger, pairLedgers, serializeLedgerReport } from '@lab/visual-diff/ledger';
 import { EXIT, HOST, LEDGER, parseVariantKey } from '@lab/visual-diff/policy';
 import { BASELINE_ENV, CANONICAL_LABEL, baselinesPath } from './baselines';
 import { DATA_MOUNT, REPO_MOUNT, containerArgv } from './docker';

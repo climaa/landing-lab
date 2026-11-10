@@ -9,15 +9,14 @@ import { projectName } from './scripts/project-name.mjs';
 // shot route refuses a path outside it.
 // Run: pnpm --filter @lab/visual-diff-ui test  (or `turbo run test` from the root)
 //
-// `.mts`, not `.ts` — see apps/blog/vitest.config.mts for why the extension
-// and `import.meta.dirname` are one change rather than two.
+// `.mts`, not `.ts`: the extension and `import.meta.dirname` are one change
+// rather than two, since `import.meta.dirname` needs the file to be ESM.
 const config = defineConfig({
   // tsconfig says `jsx: preserve` because Next owns the JSX transform; oxc
   // reads that as "classic" and every rendered element then throws
   // `React is not defined`. Name the runtime Next actually uses.
   //
-  // `oxc` rather than `esbuild` — see apps/blog/vitest.config.mts for the
-  // mechanism. Short version: Vite 8 converts an `esbuild` block to oxc only
+  // `oxc` rather than `esbuild`: Vite 8 converts an `esbuild` block to oxc only
   // when nothing else has set `oxc`, and Vitest always sets one, so `esbuild`
   // here would be silently ignored rather than merely deprecated.
   oxc: { jsx: { runtime: 'automatic' } },

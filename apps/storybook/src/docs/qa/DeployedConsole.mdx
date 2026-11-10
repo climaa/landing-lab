@@ -193,5 +193,5 @@ leave stale bytes in caches; publish it under a new report id instead.
 | Sample badge on an instance with a data directory   | `isPopulated` — the directory is missing or empty, so the resolution fell back.                |
 | A report 404s on the deployed console               | Its directory is not committed, or the id was typed by hand. The console lists what exists.    |
 | Fixture-shaped tests fail after editing sample data | Intended. They pin the tree by value; update them with the change.                             |
-| A deploy didn't happen                              | `production` did not move, or `ignoreCommand` found `@lab/visual-diff-ui` unaffected.         |
+| A deploy didn't happen                              | `production` did not move, or `ignoreCommand` found `@lab/visual-diff-ui` unaffected.          |
 | An updated shot still shows the old image           | `immutable` caching. Publish under a new report id rather than overwriting.                    |

@@ -50,8 +50,8 @@
  * next/font/local WOULD collapse them: one localFont() call per family takes a
  * src array of {path, weight, style} and generates the rules, with a
  * `declarations` option for the range. It is rejected because of who reads this
- * file. These four blocks are the only @font-face in the repo, and both apps
- * reach them through @lab/ui/styles.css — apps/blog via app/globals.css,
+ * file. These four blocks are the only @font-face in the repo, and every app
+ * reaches them through @lab/ui/styles.css — a Next app via app/globals.css,
  * apps/storybook via .storybook/preview.ts. next/font emits its rules inside the
  * Next app, and Storybook is Vite-based and could not consume them: its captures
  * would render in fallback faces while the blog rendered in these, which is

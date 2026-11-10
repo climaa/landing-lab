@@ -2,23 +2,21 @@
 
 Nothing here publishes to npm. Every workspace is `private: true`, so the version is a
 coherence marker rather than a distribution fact: the repo is the product, and it carries
-one version across all eleven manifests.
+one version across all nine manifests.
 
-`CHANGELOG.md` at the root is the changelog's source, since 2026-10-18. There are no
-changesets. **"Add a changelog entry" means "add it under `## Unreleased` in
-`CHANGELOG.md`."** At release time that section is written up into the four-part body
-and moved under its version, and the GitHub Release body is copied from it, never written
-separately: one text, so the two cannot drift. `/changelog` on the blog still fetches the
-GitHub Releases at build time (`apps/blog/lib/releases.ts`) and renders their bodies
-verbatim, which is why the copy has to be exact. If someone asks for a changeset here,
-say the mechanism does not exist rather than adding the tooling.
+`CHANGELOG.md` at the root is the changelog's source. There are no changesets. **"Add a
+changelog entry" means "add it under `## Unreleased` in `CHANGELOG.md`."** At release time
+that section is written up into the four-part body and moved under its version, and the
+GitHub Release body is copied from it, never written separately: one text, so the two
+cannot drift. If someone asks for a changeset here, say the mechanism does not exist
+rather than adding the tooling.
+
+This procedure is inherited from `acceptance-gate`, where a blog renders every release
+body on a `/changelog` page. landing-lab has no such page; the GitHub Release is the page.
 
 ## The four parts
 
-Every release body since 1.0.0 has the same four parts, in the same order. The argument
-for them is
-[_The changelog is the first page they open_](apps/blog/content/posts/the-changelog-is-the-first-page-they-open.mdx);
-[v1.3.0](https://blog.carloslima.dev/changelog#v1.3.0) is the reference entry.
+Every release body has the same four parts, in the same order.
 
 1. **A thesis line.** One sentence saying what the release is, before any version number
    or PR list. A reader with fifteen seconds gets the story from this line alone.
@@ -35,32 +33,18 @@ for them is
 
 Close with `**Full changelog:** <compare URL>`.
 
-Two constraints the renderer imposes, both worth knowing before writing: bodies are
-compiled as **markdown, not MDX** (`format: 'md'`), and raw HTML is silently dropped —
-so a type signature belongs in a code span. Bare `#NNN` references and a trailing compare
-URL are autolinked for you by `apps/blog/lib/remark-release-body.ts`; body headings are
-shifted down one level, so `##` is the top level to write at.
-
-### The commit body and the release body are two different artifacts
-
-The release commit's message explains the bump to someone reading `git log`. The release
-body is a page on the website, read by people who will never open the repository. They
-overlap in facts and share nothing in shape: the commit body is hard-wrapped prose, the
-release body is markdown with headings and tables.
-
-Pasting one into the other is what went wrong at v1.4.0 — it published a body with no
-headings, no tables and no index corrections, and it was the only entry on `/changelog`
-that rendered as an unbroken wall of text.
+The release commit's message and the release body are two different artifacts: the commit
+body is hard-wrapped prose for `git log`, the release body is markdown with headings and
+tables for people who will never open the repository. Never paste one into the other.
 
 ## The procedure
 
 1. Branch `release/X.Y.Z` off `main`.
 
-2. Bump **eleven** manifests in lockstep — the root, `apps/{blog,e2e,manual,storybook,visual-diff-ui}`
-   and `packages/{links,logger,tsconfig,ui,visual-diff}`. Nothing else in the tree carries the
-   version: the version strings in `apps/blog/app/changelog/page.tsx`'s comments and in
-   `apps/blog/__tests__/giscus-threads.test.ts` are illustrative examples and fixtures, and
-   are **not** bumped.
+2. Bump **nine** manifests in lockstep — the root, `apps/{e2e,storybook,visual-diff-ui}`
+   and `packages/{links,logger,tsconfig,ui,visual-diff}`, plus any workspace added since
+   (count `apps/*/package.json` and `packages/*/package.json`). Nothing else in the tree
+   carries the version.
 
 3. Prove `pnpm install --frozen-lockfile` still resolves and leaves `pnpm-lock.yaml`
    untouched. Every internal dependency is `workspace:*`, so it should — verify it rather
@@ -78,14 +62,12 @@ that rendered as an unbroken wall of text.
    ```
 
    Write down the before/after of every number that moved — that list _is_ part 3 of the
-   release body, and it cannot be reconstructed after the fact. Skipping this step is how
-   v1.4.0 shipped without index corrections.
+   release body, and it cannot be reconstructed after the fact.
 
    `scripts/index-integrity.mjs`, run by `health:check`, holds two of those numbers to the
    tree — the version stamp against the root manifest, and the committed baseline count
-   against the PNGs git tracks — so forgetting this step now fails a gate job rather than
-   going quiet. It deliberately does not check the per-workspace test counts: deriving
-   those means running every suite. Those are still yours to measure.
+   against the PNGs git tracks — so forgetting this step fails a gate check rather than
+   going quiet. The per-workspace test counts are still yours to measure.
 
 5. PR titled `release: X.Y.Z — <headline>`, with the release notes as the body. Gate green,
    then **squash**-merge; every release commit on `main` has a single parent and `(#NNN)`
@@ -100,19 +82,7 @@ that rendered as an unbroken wall of text.
 
    The message is that one line. No body.
 
-7. Ship. Fast-forward the `production` branch to the tag:
-
-   ```bash
-   gh api -X PATCH repos/climaa/acceptance-gate/git/refs/heads/production \
-     -f sha="$(git rev-parse 'vX.Y.Z^{commit}')" -F force=false
-   ```
-
-   This is the step that changes the live sites — see
-   [Production is a branch](#production-is-a-branch). Wait for the production deployments
-   it starts to finish before step 8. Do not also fire the deploy hooks: the ref move
-   already deploys, and a hook on top builds every project a second time (v1.6.0 did).
-
-8. Publish, with the four-part body in a file:
+7. Publish, with the four-part body in a file:
 
    ```bash
    gh release create vX.Y.Z --title "vX.Y.Z — <headline>" --notes-file <path> --verify-tag
@@ -120,94 +90,7 @@ that rendered as an unbroken wall of text.
 
    The file is the version's section of `CHANGELOG.md`, which the release PR moved out of
    `## Unreleased`, with its headings shifted back up one level (`###` → `##`). Copy it;
-   do not rewrite it.
+   do not rewrite it. The title reads `vX.Y.Z — <narrative>`, em-dash separated.
 
-   The title must read `vX.Y.Z — <narrative>`, em-dash separated: `narrativeTitle()` in
-   `apps/blog/lib/releases.ts` splits on it to render the tag and the story separately, and
-   a title shaped any other way is printed whole.
-
-   Publishing comes last on purpose: it is what puts the release on `/changelog` — see
-   [Publishing is what updates /changelog](#publishing-is-what-updates-changelog). While
-   the workflows are disabled it updates nothing on its own — pick one of the options in
-   [Both workflows are disabled](#both-workflows-are-disabled) first.
-
-Get the headline signed off **before** step 6. It becomes the tag message, the GitHub
-Release title and the permanent `/changelog` entry.
-
-## Production is a branch
-
-Each of the four Vercel projects deploys production from the `production` branch, not from
-`main`. A merge to `main` builds previews only; nothing reaches `*.carloslima.dev` until
-`production` moves. Every production build is kept for a week, so building one per merge
-took the Hobby plan's deployment storage to 75% in a fortnight — one per release does not.
-
-Nothing else deploys. Git deployments are turned off on all four Vercel projects (Settings →
-Git, `gitProviderOptions.createDeployments: disabled`), so a pull request, a merge to `main`
-or a Sandcastle branch creates nothing on Vercel. Despite the setting's name, a move of
-`production` still deploys — measured on 2026-10-18, when v1.6.0's ref move built all four
-projects before any hook was fired. The blog keeps one deploy hook, `changelog-deploy`, for
-the `/changelog` refresh below. Previews were login-protected and read by nothing —
-not the `gate`, not the e2e suite — and every one spent the Hobby plan's daily deployment cap
-that a release needs.
-
-- **Why not `git.deploymentEnabled`:** each `vercel.json` still sets
-  `{ "**": false, "production": true }`, and in the private children it works. Here, on a
-  public repository, every push after #550 still created a deployment per project — cancelled
-  by the `ignoreCommand`, but created, and creations are what the daily cap counts. The
-  project setting is the switch that held.
-- **Why the `ignoreCommand` builds when `VERCEL_GIT_PREVIOUS_SHA` is empty:** a hook
-  deployment fired on 2026-10-18 behaved as if it had none, and falling back to `HEAD^1`
-  would have compared only the last commit. A fired hook therefore always builds, and a
-  redeploy of the same sha builds too — the blog's `/changelog` refresh depends on both.
-
-- **Why not `release`:** step 1 creates `release/X.Y.Z` branches, and git cannot hold a
-  `release` branch beside them.
-- **Why `gh api` and not `git push`:** it moves the ref on GitHub without a local checkout,
-  and `force=false` refuses anything but a fast-forward, so production can never be rolled
-  back to an older commit by accident.
-- **Shipping without a release** — a blog post, an urgent fix — is the same command with
-  `main`'s sha instead of a tag. The `ignoreCommand` in each `vercel.json` still skips the
-  projects the range did not affect.
-
-## Publishing is what updates /changelog
-
-Step 7's blog build does **not** put the new release on `/changelog`. The releases fetch
-sits behind `'use cache'` with a `max` profile and Vercel restores `.next/cache` between
-builds, so an ordinary build replays the list it fetched last time.
-
-`.github/workflows/changelog-deploy.yml` is the edge that does it: it fires on
-`release: published`, POSTs the blog's Vercel deploy hook with `?buildCache=false`, and
-then polls the deployed page for the tag rather than trusting that a deployment happened.
-The hook (`changelog-deploy`) builds the `production` branch, which is why step 7 comes
-first — published before the ship, the hook would rebuild the previous release's code, and
-step 7's cached build would then serve it with whatever list its cache held.
-
-It needs the `BLOG_DEPLOY_HOOK_URL` secret, holding that hook's URL (Vercel → the blog
-project → Settings → Git → Deploy Hooks). Set it in the GitHub web UI or from a real
-terminal — `gh secret set BLOG_DEPLOY_HOOK_URL` run from a non-interactive tool call stores
-an empty value that still reads as set, which is exactly how v1.4.0 was published to a
-changelog nothing could rebuild.
-
-`changelog-check.yml` reads the deployed page back once a day and fails if it is showing
-its unavailable note, or no releases at all.
-
-### Both workflows are disabled
-
-Since 2026-10-20 every workflow in this repository is disabled on GitHub, these two
-included: Actions minutes ran out, and the gate moved to a local `pre-push` hook (#580).
-The files are kept. So step 8 publishes the release and **nothing rebuilds the blog** —
-`/changelog` keeps the previous list until something does, and no daily check notices.
-
-Each release session picks one of these, before step 8:
-
-- **Re-enable it for the release.** `gh workflow enable changelog-deploy.yml`, publish,
-  watch the run go green, then `gh workflow disable changelog-deploy.yml`. It spends
-  Actions minutes, so it only works while the month has some left.
-- **Fire the hook by hand.** The same request the workflow makes, from a terminal, with
-  the hook URL copied from the Vercel dashboard (the GitHub secret cannot be read back):
-  `curl -X POST "<hook URL>?buildCache=false"`. Then load `/changelog` and look for the
-  tag — a deployment happening is not the proof, the tag on the page is.
-- **Accept a stale `/changelog`** until the next blog build without its cache, and say so
-  in the release session's notes.
-
-Re-enabling either workflow for good is `gh workflow enable <name>.yml`.
+Deploying the landing app is not part of this procedure yet: it gets a Vercel project when
+the app exists, and the deploy steps are written here in the same PR that creates it.

@@ -13,13 +13,6 @@ pnpm-lock.yaml
 # otherwise reach. Prettier does not read .gitignore, so it is named twice.
 storybook-static/
 
-# Prettier 3.x rewrites MDX `{/* ... */}` comments as `{/_ ... _/}`, which is not a
-# valid JS expression and breaks the MDX compile at build time. `.md` is listed too:
-# `lib/posts.ts` reads either extension, drafting a post in Obsidian produces `.md`,
-# and post prose is not Prettier's business whichever suffix it lands under.
-apps/blog/content/**/*.mdx
-apps/blog/content/**/*.md
-
 # Vendored third-party skills, copied unmodified from vercel/next.js at a pinned
 # commit. PROVENANCE.md records a SHA-256 per file, so reformatting them would
 # invalidate every checksum and break the "copied unmodified" claim they rest on.
@@ -47,8 +40,7 @@ packages/ui/src/fonts/
 # double quotes, which our single-quote config rewrites and the next command
 # rewrites straight back, so a local run would fail the check on a file nobody
 # committed. Named by path rather than as a bare `next-env.d.ts` pattern: these
-# are the two that exist, and a future one should have to say so here.
-apps/blog/next-env.d.ts
+# are the ones that exist, and a future one should have to say so here.
 apps/visual-diff-ui/next-env.d.ts
 
 # `bddgen` output: playwright-bdd compiles every .feature into a .spec.js here on
