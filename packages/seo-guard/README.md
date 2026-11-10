@@ -49,13 +49,37 @@ Without it: one table row per page, then each page's findings with their evidenc
 
 ## In CI
 
-`scripts/seo-check.mjs` is the `seo` gate check (and a `pr.yml` leg): it starts the
-built `apps/web` on `:3400`, requires the sitemap to pass, and requires `/before` —
-the antipattern kept on purpose — to still fail, so a guard that stopped seeing
-problems cannot pass green.
+In this repository, `scripts/seo-check.mjs` is the `seo` gate check, run by the Husky
+pre-push hook and as a `pr.yml` leg. It starts the built `apps/web` on `:3400` and
+requires two things: the sitemap passes, and `/before` (the antipattern, kept on
+purpose) still fails. A guard that stopped seeing problems therefore cannot pass green.
 
 ```yaml
 - run: pnpm turbo run build --filter=@lab/web && node scripts/seo-check.mjs
 ```
 
-Against a deployment: `pnpm --filter @lab/seo-guard exec seo-guard --sitemap https://<domain>/sitemap.xml`.
+For a site of your own, run the guard against its deployment after it ships. The
+example below is GitHub Actions, and exit 1 fails the job:
+
+```yaml
+seo:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+      with: { repository: climaa/landing-lab }
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with: { node-version: 22, cache: pnpm }
+    - run: pnpm install --frozen-lockfile --filter @lab/seo-guard...
+    - run: pnpm --filter @lab/seo-guard exec seo-guard --sitemap https://your-site.example/sitemap.xml
+```
+
+## Anywhere else
+
+```sh
+pnpm --filter @lab/seo-guard exec seo-guard --sitemap https://your-site.example/sitemap.xml
+pnpm --filter @lab/seo-guard exec seo-guard https://your-site.example/a https://your-site.example/b --json
+```
+
+Every page listed must answer 200, or the run exits 2. Linked pages and alternates
+on the same origin are fetched once each; nothing on another origin is fetched.
