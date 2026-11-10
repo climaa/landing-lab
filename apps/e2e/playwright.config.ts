@@ -135,8 +135,19 @@ export default defineConfig({
       grepInvert: /@desktop/,
     },
   ],
-  // Two servers, both BUILT — production behaviour, not a dev server's.
-  // `turbo run e2e` builds the console first, via the task dependency in the
-  // root turbo.json.
-  webServer: [visualDiffServer('seeded'), visualDiffServer('sample')],
+  // Three servers, all BUILT — production behaviour, not a dev server's.
+  // `turbo run e2e` builds the console and the web app first, via the task
+  // dependencies in the root turbo.json.
+  webServer: [
+    visualDiffServer('seeded'),
+    visualDiffServer('sample'),
+    // The category pages, built. Port 3400 is the web app's own `start` port,
+    // which is also the origin its canonicals name when no deployment does.
+    {
+      command: 'pnpm --filter @lab/web exec next start --port 3400',
+      url: 'http://localhost:3400/after',
+      reuseExistingServer: !isCI,
+      timeout: 120_000,
+    },
+  ],
 });
