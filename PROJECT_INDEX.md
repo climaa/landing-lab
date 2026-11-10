@@ -20,7 +20,7 @@ apps/
   e2e/                 playwright-bdd acceptance suite; features/** is human-owned
 packages/
   ui/                  atoms · molecules · organisms · templates, token-only styling
-  visual-diff/         the visual-regression CLI + 242 committed baselines
+  visual-diff/         the visual-regression CLI + 248 committed baselines
   logger/              logging, Bugsink adapter, the analytics opt-out
   links/               URL builders the console imports
   tsconfig/            shared compiler options
@@ -51,5 +51,5 @@ scripts/               the gate, complexity ceiling, boards, index and leak chec
   `packages/visual-diff` 11 · `apps/storybook` 10 · `packages/logger` 3 · `apps/e2e` 2 ·
   `packages/links` 1; root `scripts/` and `.sandcastle/` 65
 - `apps/e2e`: 54 acceptance scenarios (the visual-diff console) and 1 local-lane scenario
-- `packages/visual-diff`: 242 committed baselines across atoms, molecules, organisms,
+- `packages/visual-diff`: 248 committed baselines across atoms, molecules, organisms,
   templates and the console's screens

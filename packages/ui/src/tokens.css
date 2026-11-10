@@ -126,6 +126,15 @@
   --color-warning-text: var(--c-warning-800);
   --color-danger-text: var(--c-danger-800);
 
+  /* ---- Rating role ----
+   * The filled part of a star rating (atoms/RatingStars); the empty part is
+   * --color-border-strong. A graphic that carries the score, so it is held to
+   * WCAG 1.4.11's 3:1 against both grounds a rating sits on and against the
+   * empty part beside it, which is what makes a half star read as half:
+   * 5.70:1 on bg, 5.15:1 on bg-subtle, 3.54:1 on border-strong. The same step
+   * as --color-warning-text, named for its job so either can move alone. */
+  --color-rating: var(--c-warning-800);
+
   /* ---- Skeleton roles ----
    * The placeholder's resting surface, and the band that sweeps across it. Their
    * own roles rather than bg-muted/bg-subtle: the sheen has to read as lighter
@@ -274,6 +283,9 @@
   --color-success-text: var(--c-green-300);
   --color-warning-text: var(--c-amber-300);
   --color-danger-text: var(--c-red-300);
+
+  /* Rating, dark: 12.12:1 on bg, 11.21:1 on bg-subtle, 6.84:1 on border-strong. */
+  --color-rating: var(--c-amber-300);
 
   /* The filled danger button darkens instead of brightening: the light theme's
    * #ef4444 would glare against the ground, and only a deeper red leaves room

@@ -15,6 +15,11 @@ export {
 export { Link, type LinkProps, type LinkTone } from './Link/Link';
 export { Prose } from './Prose/Prose';
 export {
+  RatingStars,
+  type RatingStarsProps,
+  type RatingStarsSize,
+} from './RatingStars/RatingStars';
+export {
   SegmentedControl,
   type SegmentedControlOption,
   type SegmentedControlProps,

@@ -275,6 +275,19 @@ describe('non-text contrast (WCAG 2.1 SC 1.4.11)', () => {
     `%s: --color-focus-ring on --color-bg meets ${AA_NON_TEXT}:1`,
     (theme) => expectContrast(theme, '--color-focus-ring', '--color-bg', AA_NON_TEXT),
   );
+
+  // A rating's filled stars carry the score, so they are a graphic SC 1.4.11
+  // covers: against both grounds a rating sits on, and against its own empty
+  // stars, or a half star stops reading as half.
+  it.each(
+    THEME_NAMES.flatMap((theme) =>
+      ['--color-bg', '--color-bg-subtle', '--color-border-strong'].map(
+        (ground) => [theme, ground] as const,
+      ),
+    ),
+  )(`%s: --color-rating on %s meets ${AA_NON_TEXT}:1`, (theme, ground) =>
+    expectContrast(theme, '--color-rating', ground, AA_NON_TEXT),
+  );
 });
 
 // ---------------------------------------------------------------------------
