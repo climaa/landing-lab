@@ -5956,6 +5956,23 @@
           }
         }
       ]
+    },
+    "rating": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#92400E",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#F2CF7C",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
     }
   },
   "fileToken": "fb0fcfd1-2de1-4a44-bdb0-30fb8790cb3c"
