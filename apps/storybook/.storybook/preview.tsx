@@ -111,9 +111,7 @@ const preview: Preview = {
     // (confirmed by reading manager-api's selectFirstStory(), which filters
     // on that type and never falls through to a docs-only page), so it
     // cannot land a bare visit on Docs by itself. What actually makes the
-    // deployed root URL open on Welcome is the redirect in ../vercel.json —
-    // which the blog's "Storybook" nav link (apps/blog/app/layout.tsx) also
-    // routes through, since it points at the bare origin with no slug.
+    // deployed root URL open on Welcome is the redirect in ../vercel.json.
     options: {
       storySort: {
         order: [
@@ -132,18 +130,14 @@ const preview: Preview = {
             // Diff Policy first: it defines the capture matrix that Visual
             // Diff Workflow then describes running. The acceptance suite comes
             // after — the top of the testing pyramid, read after the layers
-            // beneath it. The Deployed Console follows: where the runs
-            // described above end up, and why a local one never does. The
-            // Manual closes the sequence, because it is what publishes the
-            // acceptance scenarios to the readers of that console — it only
-            // makes sense once both the suite and the console are known.
+            // beneath it. The Deployed Console closes the sequence: where the
+            // runs described above end up, and why a local one never does.
             [
               'Diff Policy',
               'Visual Diff Workflow',
               'Tile Diff',
               'Acceptance Suite Locally',
               'The Deployed Console',
-              'The Manual',
             ],
             // DevOps sits after the design-system pages and before Skills: it
             // describes what happens to a change after you have made one, so it
@@ -166,11 +160,6 @@ const preview: Preview = {
             'Skills',
             [
               'Overview',
-              // Adoption first: the optimizer and the prefetching skill both
-              // require the flag it sets, and Dev Loop is the one usable today.
-              'Cache Components Adoption',
-              'Cache Components Optimizer',
-              'Partial Prefetching Adoption',
               'Dev Loop',
               // The one skill of this repo's own closes the folder: it reads a
               // story against its tile, which only makes sense once the reader

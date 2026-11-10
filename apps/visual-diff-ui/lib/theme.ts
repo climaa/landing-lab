@@ -14,7 +14,7 @@ const KEY = JSON.stringify(THEME_STORAGE_KEY);
  * The key is imported, never retyped: a copy that drifts by a character makes
  * the choice unreadable and every test in this repo still passes.
  *
- * Unlike `apps/blog`'s script, `prefers-color-scheme` is never consulted — not
+ * Unlike the parent blog's script, `prefers-color-scheme` is never consulted — not
  * even as a first-visit default. CODING_STANDARDS names the blog's as the one
  * documented exception to `[data-theme]` being the only theme mechanism, and a
  * console whose screenshots are the subject of the page has no business

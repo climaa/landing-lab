@@ -27,16 +27,16 @@ no consent banner, and none is required.
 
 `@vercel/analytics` decides development from production by reading `NODE_ENV` — which
 every **preview** build also sets to `production`. Its own detection cannot draw the line
-this needs, so `apps/blog/app/layout.tsx` draws it:
+this needs, so each app's root layout draws it — `apps/visual-diff-ui/app/layout.tsx`:
 
 ```tsx
-<body>
-  <SiteHeader brand={SITE_TITLE} nav={NAV} as={NextLink} />
-  <main id="main">{children}</main>
-
-  {process.env.VERCEL_ENV === 'production' && <Analytics />}
-</body>
+{
+  process.env.VERCEL_ENV === 'production' && <SiteAnalytics />;
+}
 ```
+
+`SiteAnalytics` is `<Analytics beforeSend={optOutBeforeSend} />` in a client module, so the
+owner's opt-out below travels with every app that renders it.
 
 `VERCEL_ENV` is a Vercel [system environment
 variable](https://vercel.com/docs/environment-variables/system-environment-variables).
@@ -242,8 +242,8 @@ Production is the one configuration nothing in the [gate](?path=/docs/docs-devop
 exercises. Run both sides by hand, filtering to whichever app you changed:
 
 ```bash
-VERCEL_ENV=production pnpm --filter @lab/blog build
-VERCEL_ENV=production pnpm --filter @lab/blog start
+VERCEL_ENV=production pnpm --filter @lab/visual-diff-ui build
+VERCEL_ENV=production pnpm --filter @lab/visual-diff-ui start
 ```
 
 **The script path differs between local and production, and this is the trap.** Locally

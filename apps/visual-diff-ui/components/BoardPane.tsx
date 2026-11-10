@@ -1,13 +1,7 @@
 'use client';
 
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
-import {
-  IconButton,
-  PanZoom,
-  type PanZoomProps,
-  SegmentedControl,
-  Stack,
-} from '@lab/ui';
+import { IconButton, PanZoom, type PanZoomProps, SegmentedControl, Stack } from '@lab/ui';
 import { DESIGN_BOARDS, type DesignBoard, isDesignBoard } from '@/lib/comparison';
 import { designBoardUrl } from '@/lib/design-urls';
 import type { ShotTools } from './DesignStage';

@@ -37,9 +37,10 @@ is never queued work however its status column reads.
 _Avoid_: treating a Todo draft and a Todo issue as the same state.
 
 **manual**:
-The end-user manual for the visual-diff console: the `apps/manual` workspace and
-the pages it publishes. Storybook's addon-docs pages are _docs_ — developer
-material, never this. The adjective is unrelated: a _manual step_ is a human one.
+The end-user manual for the visual-diff console. It lives in acceptance-gate,
+this repository's parent; landing-lab has none. Storybook's addon-docs pages are
+_docs_ — developer material, never this. The adjective is unrelated: a _manual
+step_ is a human one.
 _Avoid_: docs for the end-user manual; manual for Storybook's pages.
 
 ## Capturing

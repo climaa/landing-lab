@@ -55,7 +55,8 @@ composition. `x-visual-diff-pages` narrates the pages they compose.
 
 ### Reader flows (F1–F3)
 
-Three entry-point flows, each with real coverage at a different layer today:
+Three entry-point flows of the blog in `acceptance-gate`, the repository this one was seeded
+from. The board still draws them; the blog, its tests and its scenarios stayed in the parent:
 
 - **F1 (Index → Post)** — click a card, land on the article. Covered end-to-end: the "Read a
   full article" scenario in `apps/e2e/features/acceptance/blog.feature` opens the first article from the
@@ -65,7 +66,7 @@ Three entry-point flows, each with real coverage at a different layer today:
   by what the route itself renders, not by a scripted journey.
 - **F3 (Theme toggle)** — flips `[data-theme]` on `<html>`, persisted to `localStorage`, a
   pre-hydration script kills the flash. Covered by unit tests
-  (`ThemeToggle.test.tsx`, `first-paint.test.ts` in `apps/blog/__tests__/`), not e2e — the
+  (`ThemeToggle.test.tsx` here, `first-paint.test.ts` in the parent's blog), not e2e — the
   mechanism is fully exercised, the user-visible click-and-see-it-change journey isn't scripted.
 
 Why the flows are written as `.feature` files at all — and why a step definition is allowed to

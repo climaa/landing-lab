@@ -120,12 +120,17 @@ const LANES = ['acceptance', 'local'];
  * board is read now, and gained one for an added story, which has no before
  * and so links to its design instead.
  *
+ * It was 88 in acceptance-gate. landing-lab was seeded without the blog, and its
+ * six acceptance features (a11y, about, blog, changelog-comments, link-preview,
+ * smoke) went with it, whole: 34 scenarios. Dropping a feature file whole is the
+ * maintainer's decision, recorded in landing-lab#1; none of the kept ones changed.
+ *
  * Exact equality, not a floor: a floor decays, and after ten more scenarios a
  * floor of 47 would permit deleting ten of them. Raising this alongside a new
  * scenario is a two-line diff; LOWERING it is a product decision and belongs in
  * its own hand-authored PR with the reason written down.
  */
-const EXPECTED_SCENARIOS = 88;
+const EXPECTED_SCENARIOS = 54;
 
 /** The two project selectors. Carrying both excludes a scenario from both. */
 const PROJECT_TAGS = ['@desktop', '@mobile'];

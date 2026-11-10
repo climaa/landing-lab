@@ -52,12 +52,7 @@ describe('visual-diff-container', () => {
     expect(code).toBe(0);
     expect(calls.map((call) => call.command)).toEqual(['pnpm', 'docker']);
     expect(calls[0]?.args).toEqual(STORYBOOK_BUILD);
-    expect(STORYBOOK_BUILD).toEqual([
-      'turbo',
-      'run',
-      'build',
-      '--filter=@lab/storybook',
-    ]);
+    expect(STORYBOOK_BUILD).toEqual(['turbo', 'run', 'build', '--filter=@lab/storybook']);
   });
 
   it('passes every argument to the CLI in the pinned image, verbatim', () => {

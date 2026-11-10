@@ -8,7 +8,7 @@
  * `"use cache"` scope for the compiler, and the directive itself is inert here
  * because esbuild leaves the string literal alone.
  *
- * `cacheTag` is stubbed alongside it — unlike apps/blog, every cached reader in
+ * `cacheTag` is stubbed alongside it — unlike a static site's, every cached reader in
  * this app tags itself, so a suite without it could not import lib/data.ts at
  * all. The tag is a registration for a later `revalidateTag`, so recording it
  * would only assert the stub.

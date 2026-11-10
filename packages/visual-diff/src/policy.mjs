@@ -134,15 +134,11 @@ const UI_SRCS = [
 /** The app directories whose stories are `screens`, named one by one rather than
  *  matched as every app's `app/`: every app that serves web routes, one section
  *  each (designs/STANDARD.md, "Every route is a screen"). Here the console comes
- *  first, because in this repository it is the product; the blog and the manual
- *  follow. A child lists its own apps and captures its console review-only, since
- *  there it is the tool rather than the thing shot.
+ *  first; landing-lab's own web app joins it here when it lands. A child lists its
+ *  own apps and captures its console review-only, since there it is the tool rather
+ *  than the thing shot.
  *  @type {readonly (readonly string[])[]} */
-export const APP_ROOTS = [
-  ['apps', 'visual-diff-ui', 'app'],
-  ['apps', 'blog', 'app'],
-  ['apps', 'manual', 'app'],
-];
+export const APP_ROOTS = [['apps', 'visual-diff-ui', 'app']];
 
 /** The name an {@link APP_ROOTS} entry gives its app: the directory under `apps/`,
  *  which is also what a screen's Storybook title names (`Screens/<App>/…`) and what
@@ -436,8 +432,8 @@ export const EXIT = {
 
 /** Total budget for the committed baseline set. Baselines live in git forever, so the
  *  ceiling is on the whole directory. 15 MB since every route became a screen
- *  (designs/STANDARD.md): the console's, the blog's and the manual's pages, each a page
- *  tall at both viewports in both themes, came to 14.4 MB, where the four
+ *  (designs/STANDARD.md) in the parent, where three apps' pages, each a page tall at
+ *  both viewports in both themes, came to 14.4 MB, where the four
  *  design-system tiers fit in under 3 MB. The next screen raises it on purpose. */
 export const BASELINE_BUDGET_BYTES = 15_000_000;
 

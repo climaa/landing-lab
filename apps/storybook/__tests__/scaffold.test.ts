@@ -22,7 +22,7 @@ const readJson = (...segments: string[]) =>
   JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...segments), 'utf8'));
 
 const manifest = readJson('apps', 'storybook', 'package.json');
-const blogManifest = readJson('apps', 'blog', 'package.json');
+const consoleManifest = readJson('apps', 'visual-diff-ui', 'package.json');
 const uiManifest = readJson('packages', 'ui', 'package.json');
 const turbo = readJson('turbo.json');
 
@@ -103,7 +103,6 @@ describe('the corpus boundary', () => {
       'screens',
     );
     expect(tierOf('apps/storybook/src/RunPanel.stories.tsx')).toBeNull();
-    expect(tierOf('../blog/app/_screens/Home.stories.tsx')).toBe('screens');
     expect(tierOf('../e2e/features/Page.stories.tsx')).toBeNull();
   });
 
@@ -120,18 +119,21 @@ describe('the corpus boundary', () => {
 
 describe('the framework’s React and Next', () => {
   // The framework needs both present. A second range here would let Storybook
-  // render a different Next than the one the blog ships.
-  it.each(['next', 'react', 'react-dom'])('%s is the range apps/blog pins', (name) => {
-    const ours = manifest.dependencies[name];
+  // render a different Next than the one the console ships.
+  it.each(['next', 'react', 'react-dom'])(
+    '%s is the range apps/visual-diff-ui pins',
+    (name) => {
+      const ours = manifest.dependencies[name];
 
-    expect(ours).toBe(blogManifest.dependencies[name]);
-  });
+      expect(ours).toBe(consoleManifest.dependencies[name]);
+    },
+  );
 });
 
 describe('vite', () => {
   // This app is the only workspace that names vite outright — the framework needs
   // it — but vitest resolves the same instance for every other suite. Letting a
-  // second major in makes apps/blog's `esbuild: { jsx: 'automatic' }` a no-op
+  // second major in makes a workspace's `esbuild: { jsx: 'automatic' }` a no-op
   // (vite 8 transforms with oxc), and its whole suite fails to parse JSX.
   it('resolves to a single version across the monorepo', () => {
     const lockfile = fs.readFileSync(path.join(REPO_ROOT, 'pnpm-lock.yaml'), 'utf8');
@@ -148,7 +150,7 @@ describe('the design system stylesheet', () => {
   const preview = fs.readFileSync(path.join(CONFIG_DIR, 'preview.tsx'), 'utf8');
 
   it('is imported once, so every story renders against the real tokens', () => {
-    const imports = preview.match(/@gate\/ui\/styles\.css/g) ?? [];
+    const imports = preview.match(/@lab\/ui\/styles\.css/g) ?? [];
 
     expect(imports).toHaveLength(1);
   });

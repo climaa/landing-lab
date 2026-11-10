@@ -19,15 +19,10 @@ const APPS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
  *  swapped for static files below. */
 const CONSOLE_DIR = join(APPS_DIR, 'visual-diff-ui');
 
-/** The manual, whose feature sources are swapped for raw imports below. */
-const MANUAL_DIR = join(APPS_DIR, 'manual');
-
 /** Each storied app's root. Every one maps `@/*` to itself in its tsconfig, which is
  *  why `@/…` is resolved by {@link appAlias} rather than by an alias entry. The
  *  same apps, in the same order, as the policy's `APP_ROOTS`. */
-const STORIED_APPS = ['visual-diff-ui', 'blog', 'manual'].map((app) =>
-  join(APPS_DIR, app),
-);
+const STORIED_APPS = ['visual-diff-ui'].map((app) => join(APPS_DIR, app));
 
 /** Forward slashes whatever the platform: Vite hands ids over posix-style. */
 const posix = (path: string) => path.replaceAll('\\', '/');
@@ -36,9 +31,9 @@ const posix = (path: string) => path.replaceAll('\\', '/');
  * Which app's root a `@/…` written in `importer` means, or `undefined` when the
  * importer belongs to no storied app.
  *
- * Getting it wrong is silent: the blog and the manual both carry a `lib/site` and
- * a `lib/share`, so a manual screen sent to the blog's root still builds, and
- * renders the other app's words. Exported for `__tests__/app-alias.test.ts`.
+ * Getting it wrong is silent: two apps that both carry a `lib/site` would still
+ * build with one sent to the other's root, and render the other app's words.
+ * Exported for `__tests__/app-alias.test.ts`.
  */
 export const appRootFor = (importer: string): string | undefined => {
   const path = posix(importer);
@@ -49,22 +44,16 @@ export const appRootFor = (importer: string): string | undefined => {
 /** The console's board addresses, swapped for the static files (design-urls.ts). */
 const DESIGN_URLS = join(dirname(fileURLToPath(import.meta.url)), 'design-urls.ts');
 
-/** The manual's feature sources, swapped for raw imports (manual-sources.ts). */
-const MANUAL_SOURCES = join(dirname(fileURLToPath(import.meta.url)), 'manual-sources.ts');
-
 /**
  * The app modules a story cannot load as they are, each swapped for a file beside
  * this config that answers the same exports in a browser:
  *
  * - the console's `@/lib/design-urls`: a board is served by a route with a query,
  *   which a static build cannot answer, so a screen reads the same files off
- *   `/designs` instead;
- * - the manual's `@/lib/sources`: it reads the published `.feature` files with
- *   `readFileSync`, so a screen imports the same files as text.
+ *   `/designs` instead.
  */
 const SWAPS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   [CONSOLE_DIR]: { '@/lib/design-urls': DESIGN_URLS },
-  [MANUAL_DIR]: { '@/lib/sources': MANUAL_SOURCES },
 };
 
 /**
@@ -143,8 +132,6 @@ const config: StorybookConfig = {
   stories: [
     '../../../packages/ui/src/**/*.stories.tsx',
     '../../visual-diff-ui/app/**/*.stories.tsx',
-    '../../blog/app/**/*.stories.tsx',
-    '../../manual/app/**/*.stories.tsx',
     '../src/**/*.mdx',
   ],
   framework: '@storybook/nextjs-vite',
@@ -155,17 +142,7 @@ const config: StorybookConfig = {
   // staticDirs sidesteps that pipeline entirely.
   // A screen's shots ride the same mechanism, at the addresses the console's
   // components build (`lib/shots.ts`), so no story rewrites a URL.
-  //
-  // The blog's and the manual's screens ask for their own public files at the
-  // addresses their apps serve them: the changelog control's animation, and the
-  // manual's console captures. Only those two directories — the blog's
-  // `public/images` would claim `/images` too, and none of its screens draws one.
-  staticDirs: [
-    { from: '../../../designs/exports', to: '/designs' },
-    ...screenShots,
-    { from: '../../blog/public/lottie', to: '/lottie' },
-    { from: '../../manual/public/images', to: '/images' },
-  ],
+  staticDirs: [{ from: '../../../designs/exports', to: '/designs' }, ...screenShots],
   // addon-docs: autodocs (`tags: ['autodocs']` in preview.ts) plus the thirteen
   // hand-written docs pages under src/docs, whose subdirectories mirror the
   // sidebar folders their <Meta title> puts them in. addon-a11y: axe in the panel, an
@@ -197,8 +174,8 @@ const config: StorybookConfig = {
     `${head ?? ''}${linkPreviewHead(readFileSync(WELCOME_MDX, 'utf8'))}${analyticsHead(process.env)}`,
   // GFM (tables, strikethrough, task lists) is not CommonMark — without this,
   // a pipe table in a docs page silently renders as one run-on paragraph of
-  // literal pipe characters instead of a <table>, same failure mode the blog's
-  // MDX pipeline had (apps/blog/lib/mdx.tsx) before it got the same plugin.
+  // literal pipe characters instead of a <table>, the same failure mode any MDX
+  // pipeline without the plugin has.
   // addon-docs's mdx-plugin reads this off `presets.apply('options', {})` —
   // Storybook resolves that hook from a field literally named `options` on
   // this config object, the same way `docs`/`core`/etc. resolve. Not part of
@@ -212,7 +189,7 @@ const config: StorybookConfig = {
     },
   },
   // @lab/ui's client components carry `'use client'` for the Next.js/webpack
-  // RSC pipeline the consuming apps need (apps/blog, apps/visual-diff-ui), and
+  // RSC pipeline the consuming apps need (apps/visual-diff-ui), and
   // so do the `next/dist` client modules `@storybook/nextjs-vite` pulls in.
   // This plain bundle has no RSC concept, drops the directive, and renders them
   // as client components either way — the drop is correct, not a bug. The

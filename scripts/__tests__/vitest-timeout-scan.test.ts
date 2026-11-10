@@ -152,7 +152,7 @@ describe('vitestConfigs', () => {
     ]);
   });
 
-  it('finds at least the nine vitest configs in this repository', () => {
+  it('finds at least the eight vitest configs in this repository', () => {
     // Arrange
     const root = resolve(__dirname, '../..');
 
@@ -160,7 +160,7 @@ describe('vitestConfigs', () => {
     const files: string[] = vitestConfigs(root);
 
     // Assert
-    expect(files.length).toBeGreaterThanOrEqual(9);
+    expect(files.length).toBeGreaterThanOrEqual(8);
   });
 });
 

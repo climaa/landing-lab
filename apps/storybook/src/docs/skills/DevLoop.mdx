@@ -26,7 +26,7 @@ runtime" — since compiling and working are the distinction its description is 
 One requirement: **a running dev server.**
 
 ```bash
-pnpm --filter @lab/blog dev    # serves on port 3000
+pnpm --filter @lab/visual-diff-ui dev    # serves on port 3300
 ```
 
 It also needs the `agent-browser` CLI available on your PATH. The skill's preflight derives one
@@ -55,10 +55,9 @@ running after the session.
 
 ## Why the two views matter here
 
-This blog is entirely prerendered — 18 routes, every one a file on disk at the end of the
-build. That makes a specific class of bug easy to miss: something that renders correctly in
-the built HTML but breaks once React hydrates in the browser, or a route that Next reports as
-static while the page a visitor receives is not what you expected.
+A page that Next prerenders makes a specific class of bug easy to miss: something that
+renders correctly in the built HTML but breaks once React hydrates in the browser, or a route
+that Next reports as static while the page a visitor receives is not what you expected.
 
 Neither `next build` nor a unit test catches that. The build reports what it produced; the
 browser reports what happened. This skill is the only one of the four that asks the second

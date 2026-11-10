@@ -7,7 +7,8 @@ import * as path from 'node:path';
  * a deployed function alike — and never through a workspace link: the file
  * tracer records a symlinked file under its target, so a read through a link
  * works on every machine with an install and is ENOENT on a deployment. The
- * blog's cards answered 500 until they learned this (`apps/blog/lib/og.tsx`).
+ * blog in acceptance-gate, this repository's parent, answered 500 on its cards
+ * until it learned this.
  */
 export const DESIGN_EXPORTS_DIR = path.join(
   process.cwd(),

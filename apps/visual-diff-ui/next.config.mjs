@@ -9,7 +9,7 @@ const nextConfig = {
   // scope becomes a dynamic hole instead of being baked into the prerender, and
   // a route that starts reading cookies or headers fails the build.
   cacheComponents: true,
-  // Deliberately NOT `typedRoutes`, which apps/blog enables and gets for free.
+  // Deliberately NOT `typedRoutes`, which a plain Next app gets for free.
   // It works through the design system's `as` indirection for a literal href —
   // `href="/nope"` is caught — but not for a computed one. `Link` forwards
   // `ComponentPropsWithoutRef<E>`, and that collapses next/link's own route type
@@ -19,7 +19,7 @@ const nextConfig = {
   // correct hrefs, and `router.replace` builds its URL from `pathname` + query
   // in three more places. Six `as Route` casts, half of them on code that is
   // right — the tool would be asserting less here than it costs to silence.
-  // Deliberately NOT `partialPrefetching`, which apps/blog enables. That flag
+  // Deliberately NOT `partialPrefetching`. That flag
   // pays off on an index that links to many distinct destinations; this app has
   // two routes, and everything worth prefetching on the console is already the
   // shared shell. Revisit when the report route gains links of its own.
@@ -57,8 +57,8 @@ const nextConfig = {
   // `POST /api/jobs` compare writes its report and exits 1.
   serverExternalPackages: ['@lab/visual-diff'],
   // Every route below reads `fixtures/` with `readFile` at request time, off a
-  // path no bundler follows statically — the same trap apps/blog documents for
-  // its OG display face. Without naming the files, the deployed function ships
+  // path no bundler follows statically — the same trap acceptance-gate's blog
+  // documented for its OG display face. Without naming the files, the deployed function ships
   // without them and 500s on the first request instead of falling back to
   // sample mode. `/api/env` is absent on purpose: it reads no data directory.
   outputFileTracingIncludes: {

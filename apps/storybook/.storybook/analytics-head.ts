@@ -57,7 +57,7 @@ const QUEUE_STUB =
 
 /**
  * The owner's opt-out (`?va-disable=1` / `?va-disable=0`), from the same
- * function apps/blog, apps/manual and apps/visual-diff-ui hand `<Analytics />`.
+ * function apps/visual-diff-ui hands `<Analytics />`.
  * It is written self-contained for exactly this: inlined, it runs here in an
  * empty scope.
  *
@@ -223,7 +223,7 @@ const snippet = (config: AnalyticsConfig) => {
 /**
  * The manager-head snippet for this environment, or the empty string.
  *
- * The same gate apps/blog, apps/manual and apps/visual-diff-ui draw, for the
+ * The same gate apps/visual-diff-ui draws, for the
  * same reason: a preview build sets NODE_ENV=production too, so the vendor's
  * own environment detection would count a reviewer clicking through a
  * login-protected preview as a reader, into the live dataset. `VERCEL_ENV` is

@@ -121,7 +121,7 @@ describe('tierOf', () => {
   });
 
   it('returns null for a tier-named folder outside packages/ui', () => {
-    const path = 'apps/blog/src/atoms/Widget/Widget.stories.tsx';
+    const path = 'apps/web/src/atoms/Widget/Widget.stories.tsx';
 
     const tier = tierOf(path);
 
@@ -139,15 +139,12 @@ describe('tierOf', () => {
     expect(tiers).toEqual(['screens', 'screens']);
   });
 
-  it('places a story in every listed app route tree as a screen', () => {
-    const paths = [
-      '../blog/app/_screens/Home.stories.tsx',
-      '../manual/app/Start.stories.tsx',
-    ];
+  it("returns null for an app's route tree that is not listed yet", () => {
+    const path = '../web/app/_screens/After.stories.tsx';
 
-    const tiers = paths.map((path) => tierOf(path));
+    const tier = tierOf(path);
 
-    expect(tiers).toEqual(['screens', 'screens']);
+    expect(tier).toBeNull();
   });
 
   it("returns null for an unlisted app's app directory", () => {
@@ -423,10 +420,10 @@ describe('LEDGER.exempt', () => {
 });
 
 describe('APPS', () => {
-  // Every app that serves web routes is a screens app: the console, the blog and
-  // the manual. `apps/storybook` and `apps/e2e` serve none.
+  // Every app that serves web routes is a screens app: today only the console.
+  // `apps/storybook` and `apps/e2e` serve none.
   it('names every app whose route tree places under the screens tier', () => {
-    const placed = ['visual-diff-ui', 'blog', 'manual'].filter(
+    const placed = ['visual-diff-ui', 'storybook', 'e2e'].filter(
       (app) => tierOf(`apps/${app}/app/page.stories.tsx`) === APP_TIER,
     );
 
@@ -434,7 +431,7 @@ describe('APPS', () => {
   });
 
   it('names each app by its directory under apps/', () => {
-    expect(APPS).toEqual(['visual-diff-ui', 'blog', 'manual']);
+    expect(APPS).toEqual(['visual-diff-ui']);
   });
 });
 

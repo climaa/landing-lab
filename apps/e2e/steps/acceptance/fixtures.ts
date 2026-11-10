@@ -1,26 +1,17 @@
 import { expect, type Response } from '@playwright/test';
 import { test as base } from 'playwright-bdd';
 
-import { AboutPage } from '../../pages/about';
-import { BlogIndexPage } from '../../pages/blog-index';
-import { ChangelogPage } from '../../pages/changelog';
 import { Chrome } from '../../pages/chrome';
 import { ComparisonModal } from '../../pages/comparison-modal';
 import { ConsolePage } from '../../pages/console';
-import { Giscus } from '../../pages/giscus';
-import { LinkPreviews, type Preview } from '../../pages/link-preview';
-import { PostPage } from '../../pages/post';
 import { ReportPage } from '../../pages/report';
 import { ShotView } from '../../pages/shot-view';
 import { guardAnalytics } from '../../support/analytics-guard';
 
-/** What one scenario's steps hand each other — e.g. the title read off the index
- *  before the click that navigates away from it. A plain object, not a return
+/** What one scenario's steps hand each other — e.g. how many variants were
+ *  reviewed before the step that marks one. A plain object, not a return
  *  value: playwright-bdd steps take fixtures, not each other's results. */
 export interface ScenarioState {
-  articleTitle?: string;
-  /** The titles listed on page 1 of the index, read before the step that leaves it. */
-  firstPageTitles?: string[];
   /** How many variants were marked reviewed before the step that marks one. */
   reviewedBefore?: number;
   /** Which report an accept scenario is about, when it is not the one the
@@ -29,12 +20,6 @@ export interface ScenarioState {
   /** What a navigation answered with, for the scenarios whose claim is the
    *  status code rather than anything on the page. */
   response?: Response | null;
-  /** Which release a changelog scenario is about — read off the page by the step
-   *  that selects it, never written into one, so the scenarios survive the next
-   *  release. */
-  releaseTag?: string;
-  /** The pages a link-preview scenario read, as a crawler got them. */
-  previews?: Preview[];
 }
 
 /** Page objects reach the steps as fixtures, never as `new` inside a step: two steps
@@ -47,12 +32,6 @@ export interface ScenarioState {
  *  it scans, and it names the lane rather than the layer root so these specs can never
  *  bind to the local lane's `test` (whose page objects point at the dev server on 3300). */
 export const test = base.extend<{
-  about: AboutPage;
-  blogIndex: BlogIndexPage;
-  changelog: ChangelogPage;
-  giscus: Giscus;
-  linkPreviews: LinkPreviews;
-  post: PostPage;
   chrome: Chrome;
   console: ConsolePage;
   report: ReportPage;
@@ -61,24 +40,6 @@ export const test = base.extend<{
   scenarioState: ScenarioState;
   analyticsGuard: void;
 }>({
-  about: async ({ page }, use) => {
-    await use(new AboutPage(page));
-  },
-  blogIndex: async ({ page }, use) => {
-    await use(new BlogIndexPage(page));
-  },
-  changelog: async ({ page }, use) => {
-    await use(new ChangelogPage(page));
-  },
-  giscus: async ({ page }, use) => {
-    await use(new Giscus(page));
-  },
-  linkPreviews: async ({ page }, use) => {
-    await use(new LinkPreviews(page));
-  },
-  post: async ({ page }, use) => {
-    await use(new PostPage(page));
-  },
   chrome: async ({ page }, use) => {
     await use(new Chrome(page));
   },

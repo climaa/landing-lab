@@ -256,7 +256,7 @@ first way to accept: a reviewer without Docker or arm64 hardware should not have
 this file to find the way forward.
 
 That's intentional, not a gap to close later. Per
-[`visual-regression-with-agents.mdx`](../../apps/blog/content/posts/visual-regression-with-agents.mdx):
+[_Visual regression with agents_](https://blog.carloslima.dev/blog/visual-regression-with-agents):
 a numeric pixel threshold stops being a safety net once change volume is high, and
 approving a baseline has to cost the same as reviewing a code diff — a person, reading
 the PR, not a required check nobody looks at before merging. `pnpm --filter

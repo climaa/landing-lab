@@ -51,8 +51,6 @@ describe('SECTIONS', () => {
  */
 const DECLARED_APPS: Record<App, true> = {
   'visual-diff-ui': true,
-  blog: true,
-  manual: true,
 };
 
 describe('the declared App type', () => {

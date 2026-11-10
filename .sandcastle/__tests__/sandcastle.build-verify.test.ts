@@ -45,7 +45,7 @@ describe('isDocsOnlyFileList', () => {
     // is easy to misread the narrower `.sandcastle/<file>.md` pattern as the
     // only markdown rule.
     expect(isDocsOnlyFileList(['.sandcastle/agent-docs/plan-prompt.md'])).toBe(true);
-    expect(isDocsOnlyFileList(['apps/blog/content/post.mdx'])).toBe(true);
+    expect(isDocsOnlyFileList(['apps/storybook/src/docs/page.mdx'])).toBe(true);
   });
 });
 
