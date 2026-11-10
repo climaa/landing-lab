@@ -1,0 +1,79 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { RatingStars } from '@lab/ui';
+
+<Meta title="Docs/Atomic Design/Rating Stars" />
+
+# Rating stars: one element, not five images
+
+A category page that draws each star as its own `<img>` spends five images per rating, and
+when those images have no `alt` a screen reader announces five unlabelled graphics, or five
+file names, and never the score. `RatingStars` draws the same five stars as **one element
+with a name**:
+
+```html
+<span
+  class="ds-rating-stars ds-rating-stars--sm"
+  role="img"
+  aria-label="Rated 4.9 out of 5"
+  data-value="5"
+></span>
+```
+
+<p
+  style={{
+    display: 'flex',
+    gap: 'var(--space-1)',
+    alignItems: 'baseline',
+    fontSize: 'var(--text-sm)',
+  }}
+>
+  <strong>4.9</strong>
+  <RatingStars value={4.9} size="sm" />
+  <span style={{ color: 'var(--color-text-muted)' }}>(132 reviews)</span>
+</p>
+
+## Why one element, and why not an inline SVG
+
+The stars are not markup at all. They are a CSS mask, a single five-star SVG shape, cut out
+of a box whose background is two colours: `--color-rating` up to the score and
+`--color-border-strong` after it. The score arrives as `data-value` (`0`, `0.5` … `5`), and
+one of eleven rules places the boundary. There is no inline style and no child element.
+
+An inline `<svg>` with a path per star was the obvious alternative. It would cost about
+sixteen elements per rating (the svg, its defs, a clip path, two groups, ten paths), more
+than the five images it replaces, and the fixed page would have come out heavier in DOM
+size than the broken one.
+
+## What it changed, measured
+
+The same 100 reviews and 10 businesses (110 ratings) drawn both ways. Measured three times
+on the production build of `apps/web`, in Chromium at 1280×800, after load. All three runs
+gave the same numbers.
+
+|                        | One `<img>` per star                 | `RatingStars`    |
+| ---------------------- | ------------------------------------ | ---------------- |
+| `<img>` in the page    | 660                                  | 0                |
+| `<img>` without `alt`  | 660                                  | 0                |
+| DOM elements           | 1,529                                | 973 (−36 %)      |
+| axe (WCAG 2.1 A/AA)    | 1 rule, `image-alt`, on 660 elements | 0                |
+| HTML, decoded          | 219.5 KB                             | 160.2 KB (−27 %) |
+| HTML, gzip on the wire | 12.3 KB                              | 11.9 KB (−3 %)   |
+
+The 660 images include 110 avatar images that the fixed page replaces with initials. The
+HTML saving is mostly repetition that compression already removes; the images, the
+elements and the accessibility failure are what move.
+
+## The rules it keeps
+
+- **The name tells the truth, the drawing rounds.** The stars round to the nearest half,
+  ties up (4.25 → 4.5, 4.9 → 5). The name keeps one decimal ("Rated 4.9 out of 5"), so it
+  never claims the approximation the drawing had to make. A score that is not a number reads
+  "No rating"; scores outside 0–5 are clamped.
+- **Contrast is a graphic's, 3:1.** `--color-rating` is held to WCAG 1.4.11 against both
+  grounds a rating sits on and against its own empty stars, so a half star reads as half:
+  5.70 / 5.15 / 3.54 in light, 12.12 / 11.21 / 6.84 in dark (`tokens.test.ts`).
+- **Forced colours keep it.** Windows High Contrast drops author backgrounds, which would
+  erase every star; the component opts out and redraws in `CanvasText` / `GrayText`.
+- **Sized from type.** `sm`, `md` and `lg` take `--text-sm`, `--text-base` and `--text-lg`;
+  the strip is five `1em` stars and sits on the text baseline beside a score.

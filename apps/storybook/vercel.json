@@ -3,10 +3,9 @@
   "git": {
     "deploymentEnabled": {
       "**": false,
-      "production": true
+      "main": true
     }
   },
-  "ignoreCommand": "if [ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ]; then exit 1; fi; npx --yes turbo@^2.10.8 query affected --packages @lab/storybook --base=$VERCEL_GIT_PREVIOUS_SHA --exit-code",
   "redirects": [
     {
       "source": "/",
