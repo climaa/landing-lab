@@ -8,9 +8,7 @@
       "env": [
         "VERCEL_ENV",
         "VERCEL_OBSERVABILITY_CLIENT_CONFIG",
-        "NEXT_PUBLIC_BUGSINK_DSN",
-        "BLOG_RELEASES_FIXTURE",
-        "GITHUB_TOKEN"
+        "NEXT_PUBLIC_BUGSINK_DSN"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "storybook-static/**"]
@@ -33,12 +31,11 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/vitest.shared.mjs",
-        "$TURBO_ROOT$/.github/workflows/pr.yml",
-        "$TURBO_ROOT$/.github/workflows/changelog-check.yml"
+        "$TURBO_ROOT$/.github/workflows/pr.yml"
       ]
     },
     "e2e": {
-      "dependsOn": ["@lab/blog#build", "@lab/visual-diff-ui#build"],
+      "dependsOn": ["@lab/visual-diff-ui#build"],
       "cache": false
     },
     "health": {
@@ -66,9 +63,7 @@
       "env": [
         "VERCEL_ENV",
         "VERCEL_OBSERVABILITY_CLIENT_CONFIG",
-        "NEXT_PUBLIC_BUGSINK_DSN",
-        "BLOG_RELEASES_FIXTURE",
-        "GITHUB_TOKEN"
+        "NEXT_PUBLIC_BUGSINK_DSN"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
@@ -91,24 +86,6 @@
         "$TURBO_ROOT$/packages/visual-diff/src/storybook-index.mjs"
       ],
       "outputs": []
-    },
-    "@lab/manual#build": {
-      "dependsOn": ["^build"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/apps/e2e/features/acceptance/*.feature"
-      ],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "@lab/manual#test": {
-      "dependsOn": ["^build"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/vitest.shared.mjs",
-        "$TURBO_ROOT$/.github/workflows/pr.yml",
-        "$TURBO_ROOT$/apps/e2e/features/acceptance/*.feature",
-        "$TURBO_ROOT$/apps/visual-diff-ui/fixtures/reports/*/summary.json"
-      ]
     },
     "@lab/visual-diff#test": {
       "dependsOn": ["^build"],

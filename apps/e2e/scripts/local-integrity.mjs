@@ -49,7 +49,7 @@ const SERIAL_FEATURES = [];
  * guards stay green — the "weakening an assertion" move `apps/e2e/README.md`
  * refuses by name, wearing a different hat.
  */
-const MUTATING_FEATURES = ['visual-diff-flow.feature', 'blog-content.feature'];
+const MUTATING_FEATURES = ['visual-diff-flow.feature'];
 
 const MUTATING_TAG = '@mutating';
 
@@ -117,9 +117,8 @@ function checkMutatingTags(file, feature) {
  * What that leaves is a lane where every scenario writes. Nothing here reads
  * your console without changing it.
  *
- * TWO. One scenario captures its own input in your `.visual-diff`, uses it, and
- * removes it again; one writes a post into the blog's content directory and
- * removes that.
+ * ONE. It captures its own input in your `.visual-diff`, uses it, and removes it
+ * again.
  *
  * It was 9 until 2026-08-24, across two files. Those could only run on a machine
  * somebody had captured on by hand: the lane consumed capture sets and made none,
@@ -146,19 +145,8 @@ function checkMutatingTags(file, feature) {
  * considered and not taken was restoring the consumed sets in teardown, the way
  * this lane already restores `history.json`; that would have kept the scenario.
  *
- * It was 1 until `blog-content.feature` joined the lane. `apps/blog/proxy.ts`
- * reads the posts directory to decide whether an address exists, and caches that
- * read in production but not in development — a distinction the acceptance lane
- * structurally cannot check, because it only ever boots `next start`. A proxy
- * that cached in both places passes all 44 acceptance scenarios and still leaves
- * a post you just wrote listed on the index and broken at its own address until
- * you restart. That is the second reason this lane exists, alongside "your own
- * `.visual-diff`": your own content, mid-edit.
- *
- * It writes to a second tree of yours as a result — `apps/blog/content/posts` —
- * so `MUTATING_FEATURES` above names two files now. Unlike the console flow, the
- * blog scenario restores what it touched, and its fixture removes the probe again
- * in teardown so a failed run leaves nothing in a directory `git status` reads.
+ * It was 2 while this repository's parent carried a blog scenario in the lane;
+ * the seed of landing-lab dropped the blog, and its feature with it.
  *
  * Exact equality, not a floor, for the same reason the acceptance suite's is:
  * a floor decays into permission to delete. Raising this alongside a new
@@ -166,7 +154,7 @@ function checkMutatingTags(file, feature) {
  * claims, and belongs in its own hand-authored change with the reason written
  * down.
  */
-const EXPECTED_LOCAL_SCENARIOS = 2;
+const EXPECTED_LOCAL_SCENARIOS = 1;
 
 runIntegrityCheck({
   name: 'local-lane',

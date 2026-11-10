@@ -10,9 +10,9 @@ import { appRootFor } from '../.storybook/main';
  *
  * Every storied app maps `@/*` to its own root, and one Vite alias cannot hold
  * three targets for one key, so `main.ts` resolves the prefix against the
- * importer. The failure this holds is silent: the blog and the manual both carry
- * a `lib/site`, so a manual screen sent to the blog's root builds and renders the
- * other app's words.
+ * importer. The failure this holds is silent: two apps that both carry a
+ * `lib/site` would build with one's screen sent to the other's root, and render
+ * the other app's words.
  */
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -30,9 +30,9 @@ describe('a `@/` specifier', () => {
     expect(appRootFor(importer)).toBe(appRoot);
   });
 
-  // The prefix trap: `apps/blog-archive` must not be read as `apps/blog`.
+  // The prefix trap: `apps/visual-diff-ui-archive` must not be read as `apps/visual-diff-ui`.
   it('written in an app whose name starts with a storied one resolves to none', () => {
-    const importer = path.join(REPO_ROOT, 'apps', 'blog-archive', 'app', 'page.tsx');
+    const importer = path.join(REPO_ROOT, 'apps', 'visual-diff-ui-archive', 'app', 'page.tsx');
 
     expect(appRootFor(importer)).toBeUndefined();
   });
@@ -44,7 +44,7 @@ describe('a `@/` specifier', () => {
   });
 
   it('written with Windows separators still finds its app', () => {
-    const appRoot = path.join(REPO_ROOT, 'apps', 'manual');
+    const appRoot = path.join(REPO_ROOT, 'apps', 'visual-diff-ui');
     const importer = path.join(appRoot, 'app', 'page.tsx').replaceAll('/', '\\');
 
     expect(appRootFor(importer)).toBe(appRoot);

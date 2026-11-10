@@ -17,11 +17,6 @@ const testDir = defineBddConfig({
   steps: 'steps/acceptance/**/*.ts',
 });
 
-// Dedicated port so the run never collides with a dev server already on 3000.
-// The server is started on it and the tests are pointed at it, so it is one constant:
-// the two drifting apart boots a server nothing visits.
-const PORT = 3100;
-
 const isCI = !!process.env.CI;
 
 // E2E_BASE_URL aims the suite at an already-running deployment — a local
@@ -35,7 +30,9 @@ if (isCI && process.env.E2E_BASE_URL) {
   );
 }
 
-const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
+// The seeded console is the suite's default host: a step that names no world
+// means it. Scenarios that need the sample world name it through `VD_HOSTS`.
+const baseURL = process.env.E2E_BASE_URL ?? VD_HOSTS.seeded;
 
 interface World {
   /** Handed to `scripts/seed-visual-diff.mjs` after the target directory. */
@@ -65,8 +62,8 @@ const WORLDS: Record<VdWorld, World> = {
 /**
  * One visual-diff world: seed its tree, then boot the built console on it.
  *
- * The port comes out of `VD_HOSTS` rather than sitting beside it — the blog's
- * one-constant rule, so a server and the tests aimed at it cannot drift apart.
+ * The port comes out of `VD_HOSTS` rather than sitting beside it — one constant,
+ * so a server and the tests aimed at it cannot drift apart.
  * `VISUAL_DIFF_DATA_DIR` is absolute because `next start` runs with the app's
  * own workspace as its working directory, and a relative value would resolve
  * there, find nothing, and be reported as sample mode rather than as an error.
@@ -138,17 +135,10 @@ export default defineConfig({
       grepInvert: /@desktop/,
     },
   ],
-  // Three servers, all BUILT — production behavior (draft filtering, prerendered
-  // routes, the real cache-tag invalidation), not a dev server's. `turbo run
-  // e2e` builds both apps first, via the task dependencies in the root
-  // turbo.json.
+  // Two servers, both BUILT — production behaviour, not a dev server's.
+  // `turbo run e2e` builds the console first, via the task dependency in the
+  // root turbo.json.
   webServer: [
-    {
-      command: `pnpm --filter @lab/blog exec next start --port ${PORT}`,
-      url: baseURL,
-      reuseExistingServer: !isCI,
-      timeout: 120_000,
-    },
     visualDiffServer('seeded'),
     visualDiffServer('sample'),
   ],

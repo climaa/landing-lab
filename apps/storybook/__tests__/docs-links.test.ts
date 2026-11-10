@@ -22,7 +22,6 @@ import preview from '../.storybook/preview';
 const STORYBOOK_DIR = path.resolve(import.meta.dirname, '..');
 const REPO_ROOT = path.resolve(STORYBOOK_DIR, '..', '..');
 const DOCS_DIR = path.join(STORYBOOK_DIR, 'src', 'docs');
-const BLOG_POSTS_DIR = path.join(REPO_ROOT, 'apps', 'blog', 'content', 'posts');
 
 const mdxFilesIn = (dir: string) =>
   fs
@@ -43,7 +42,6 @@ const docPages = mdxFilesIn(DOCS_DIR).map((file) => ({
 
 const linkSources = [
   ...mdxFilesIn(DOCS_DIR),
-  ...mdxFilesIn(BLOG_POSTS_DIR),
   path.join(STORYBOOK_DIR, 'vercel.json'),
 ].map((file) => ({
   file: path.relative(REPO_ROOT, file),
@@ -128,7 +126,6 @@ const EXEMPT_HOST = 'storybook.carloslima.dev';
 
 const proseLinks = [
   { dir: DOCS_DIR, source: 'storybook' },
-  { dir: BLOG_POSTS_DIR, source: 'blog' },
 ].flatMap(({ dir, source }) =>
   mdxFilesIn(dir).flatMap((file) =>
     [...fs.readFileSync(file, 'utf8').matchAll(OWN_PROPERTY_LINK)]
