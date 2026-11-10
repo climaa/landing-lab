@@ -3276,6 +3276,2143 @@
         },
         {
           "type": "frame",
+          "id": "F9JT4",
+          "name": "atoms-ratingstars--scale",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "HtCBJ",
+              "name": "Label",
+              "fill": "$ink-muted",
+              "content": "atoms-ratingstars--scale",
+              "lineHeight": 1.2,
+              "fontFamily": "$font-mono",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "YGusJ",
+              "name": "Tiles",
+              "gap": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Pn8Bc",
+                  "name": "atoms__desktop__light__atoms-ratingstars--scale",
+                  "theme": {
+                    "mode": "light"
+                  },
+                  "reusable": true,
+                  "clip": true,
+                  "width": 1248,
+                  "height": 311,
+                  "fill": "$bg",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "eo1uh",
+                      "name": "Row 0",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "a1ZpWy",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "C6cXN",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "0",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rhmGW",
+                          "name": "RatingStars · 0",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "k26f7W",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "lrPhk",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "NweNo",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "HPO6g",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "R11OZa",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "XHquU",
+                      "name": "Row 0.5",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "g7SgK",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "pJXes",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "0.5",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "FBwMH",
+                          "name": "RatingStars · 0.5",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "onbAE",
+                              "name": "Half star",
+                              "width": 16,
+                              "height": 16,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "NciBO",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$border-strong",
+                                  "width": 16,
+                                  "height": 16
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "A7fkP",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Filled half",
+                                  "clip": true,
+                                  "width": 8,
+                                  "height": 16,
+                                  "layout": "none",
+                                  "children": [
+                                    {
+                                      "type": "path",
+                                      "id": "H7t9x",
+                                      "x": 0,
+                                      "y": 0,
+                                      "name": "Star",
+                                      "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                      "viewBox": [
+                                        0,
+                                        0,
+                                        24,
+                                        24
+                                      ],
+                                      "fill": "$rating",
+                                      "width": 16,
+                                      "height": 16
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "path",
+                              "id": "awrVM",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "vO1PB",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "vgRDG",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "I9VP2X",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AZaLO",
+                      "name": "Row 1",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "zWMzK",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "N3u5ey",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "1",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "WCi5t",
+                          "name": "RatingStars · 1",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "Pitev",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "A7WWCK",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "RwYYE",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "A0WRGF",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "HV1LM",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "FRULr",
+                      "name": "Row 1.5",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "w72X3T",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "V0lr2",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "1.5",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oOz9u",
+                          "name": "RatingStars · 1.5",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "MAgmr",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "frame",
+                              "id": "e4Vd5Q",
+                              "name": "Half star",
+                              "width": 16,
+                              "height": 16,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "ErCDX",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$border-strong",
+                                  "width": 16,
+                                  "height": 16
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "kUqEp",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Filled half",
+                                  "clip": true,
+                                  "width": 8,
+                                  "height": 16,
+                                  "layout": "none",
+                                  "children": [
+                                    {
+                                      "type": "path",
+                                      "id": "R432h",
+                                      "x": 0,
+                                      "y": 0,
+                                      "name": "Star",
+                                      "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                      "viewBox": [
+                                        0,
+                                        0,
+                                        24,
+                                        24
+                                      ],
+                                      "fill": "$rating",
+                                      "width": 16,
+                                      "height": 16
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "path",
+                              "id": "fWj5P",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "mUUPo",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "HRGB4",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "U4flXs",
+                      "name": "Row 2",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "I5ZumF",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hM1MM",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "2",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qXYYf",
+                          "name": "RatingStars · 2",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "c520W",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "dzt1d",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "VcGgm",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "SSdEo",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "lOsYR",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EnpMd",
+                      "name": "Row 2.5",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "v9mgd5",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "IV3E5",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "2.5",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "an3nc",
+                          "name": "RatingStars · 2.5",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "T4Kv2",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "pgOhH",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "frame",
+                              "id": "o4GnJ0",
+                              "name": "Half star",
+                              "width": 16,
+                              "height": 16,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "MqhN3",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$border-strong",
+                                  "width": 16,
+                                  "height": 16
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "P3uocB",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Filled half",
+                                  "clip": true,
+                                  "width": 8,
+                                  "height": 16,
+                                  "layout": "none",
+                                  "children": [
+                                    {
+                                      "type": "path",
+                                      "id": "v7AY9",
+                                      "x": 0,
+                                      "y": 0,
+                                      "name": "Star",
+                                      "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                      "viewBox": [
+                                        0,
+                                        0,
+                                        24,
+                                        24
+                                      ],
+                                      "fill": "$rating",
+                                      "width": 16,
+                                      "height": 16
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "path",
+                              "id": "D7uPHl",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "tcdiG",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "OKSxP",
+                      "name": "Row 3",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "RAYiq",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "W5sLlA",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "3",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qLiPN",
+                          "name": "RatingStars · 3",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "HJHDe",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "uOE6E",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "nZ3E3",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "xFqR3",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "YELU0",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "f3Bjq",
+                      "name": "Row 3.5",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "d5B9q",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "M62f3",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "3.5",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BAvQm",
+                          "name": "RatingStars · 3.5",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "tWtYx",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "C7LDqs",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "TS0qH",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "frame",
+                              "id": "q9krS",
+                              "name": "Half star",
+                              "width": 16,
+                              "height": 16,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "rbS8W",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$border-strong",
+                                  "width": 16,
+                                  "height": 16
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Op4yd",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Filled half",
+                                  "clip": true,
+                                  "width": 8,
+                                  "height": 16,
+                                  "layout": "none",
+                                  "children": [
+                                    {
+                                      "type": "path",
+                                      "id": "OZpKr",
+                                      "x": 0,
+                                      "y": 0,
+                                      "name": "Star",
+                                      "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                      "viewBox": [
+                                        0,
+                                        0,
+                                        24,
+                                        24
+                                      ],
+                                      "fill": "$rating",
+                                      "width": 16,
+                                      "height": 16
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "path",
+                              "id": "TfePC",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "paKv5",
+                      "name": "Row 4",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "fj8t2",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "sq1tx",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "4",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Dn5wV",
+                          "name": "RatingStars · 4",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "DahCv",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "A4Nvlw",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "WxJSb",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "FITwu",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "p2VWY",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YKKvA",
+                      "name": "Row 4.5",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Ft9P8",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "X9RK2M",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "4.5",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n1JJST",
+                          "name": "RatingStars · 4.5",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "KC0Fu",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "XHMxI",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "d280w3",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "OxJyi",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "frame",
+                              "id": "xd8bl",
+                              "name": "Half star",
+                              "width": 16,
+                              "height": 16,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "L5iKz",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$border-strong",
+                                  "width": 16,
+                                  "height": 16
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "GIxWP",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Filled half",
+                                  "clip": true,
+                                  "width": 8,
+                                  "height": 16,
+                                  "layout": "none",
+                                  "children": [
+                                    {
+                                      "type": "path",
+                                      "id": "klr0s",
+                                      "x": 0,
+                                      "y": 0,
+                                      "name": "Star",
+                                      "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                      "viewBox": [
+                                        0,
+                                        0,
+                                        24,
+                                        24
+                                      ],
+                                      "fill": "$rating",
+                                      "width": 16,
+                                      "height": 16
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yNyy7",
+                      "name": "Row 5",
+                      "height": 21,
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rQaPM",
+                          "name": "Value · space-8",
+                          "width": 32,
+                          "height": 21,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "N0E8Ac",
+                              "name": "Value",
+                              "fill": "$text-muted",
+                              "content": "5",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "AkvUZ",
+                          "name": "RatingStars · 5",
+                          "width": 80,
+                          "height": 16,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "Zoq21",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "DaVpO",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "fklXv",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "fCjmd",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "path",
+                              "id": "qZrsZ",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 16,
+                              "height": 16
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "Mjkf7",
+                  "type": "ref",
+                  "ref": "Pn8Bc",
+                  "name": "atoms__desktop__dark__atoms-ratingstars--scale",
+                  "theme": {
+                    "mode": "dark"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Mnz52",
+          "name": "atoms-ratingstars--sizes",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "m1BP3",
+              "name": "Label",
+              "fill": "$ink-muted",
+              "content": "atoms-ratingstars--sizes",
+              "lineHeight": 1.2,
+              "fontFamily": "$font-mono",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "M0r1Ze",
+              "name": "Tiles",
+              "gap": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "dq0Pe",
+                  "name": "atoms__desktop__light__atoms-ratingstars--sizes",
+                  "theme": {
+                    "mode": "light"
+                  },
+                  "reusable": true,
+                  "clip": true,
+                  "width": 1248,
+                  "height": 18,
+                  "fill": "$bg",
+                  "gap": 16,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "J35KX",
+                      "name": "RatingStars · 4.5",
+                      "width": 70,
+                      "height": 14,
+                      "children": [
+                        {
+                          "type": "path",
+                          "id": "jqqQT",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 14,
+                          "height": 14
+                        },
+                        {
+                          "type": "path",
+                          "id": "pSewz",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 14,
+                          "height": 14
+                        },
+                        {
+                          "type": "path",
+                          "id": "Jv7xn",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 14,
+                          "height": 14
+                        },
+                        {
+                          "type": "path",
+                          "id": "JpRwa",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 14,
+                          "height": 14
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wfokP",
+                          "name": "Half star",
+                          "width": 14,
+                          "height": 14,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "pkNNL",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 14,
+                              "height": 14
+                            },
+                            {
+                              "type": "frame",
+                              "id": "uuF9h",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Filled half",
+                              "clip": true,
+                              "width": 7,
+                              "height": 14,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "jH61W",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$rating",
+                                  "width": 14,
+                                  "height": 14
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QsDK6",
+                      "name": "RatingStars · 4.5",
+                      "width": 80,
+                      "height": 16,
+                      "children": [
+                        {
+                          "type": "path",
+                          "id": "G258xc",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 16,
+                          "height": 16
+                        },
+                        {
+                          "type": "path",
+                          "id": "Er3Kl",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 16,
+                          "height": 16
+                        },
+                        {
+                          "type": "path",
+                          "id": "ys16c",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 16,
+                          "height": 16
+                        },
+                        {
+                          "type": "path",
+                          "id": "l5MJZq",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 16,
+                          "height": 16
+                        },
+                        {
+                          "type": "frame",
+                          "id": "VrAzd",
+                          "name": "Half star",
+                          "width": 16,
+                          "height": 16,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "YezVT",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 16,
+                              "height": 16
+                            },
+                            {
+                              "type": "frame",
+                              "id": "P622S",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Filled half",
+                              "clip": true,
+                              "width": 8,
+                              "height": 16,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "qk5n4",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$rating",
+                                  "width": 16,
+                                  "height": 16
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "M6xAz",
+                      "name": "RatingStars · 4.5",
+                      "width": 90,
+                      "height": 18,
+                      "children": [
+                        {
+                          "type": "path",
+                          "id": "mBcHp",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 18,
+                          "height": 18
+                        },
+                        {
+                          "type": "path",
+                          "id": "d7V5l",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 18,
+                          "height": 18
+                        },
+                        {
+                          "type": "path",
+                          "id": "D6RoX8",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 18,
+                          "height": 18
+                        },
+                        {
+                          "type": "path",
+                          "id": "L7vPaX",
+                          "name": "Star",
+                          "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                          "viewBox": [
+                            0,
+                            0,
+                            24,
+                            24
+                          ],
+                          "fill": "$rating",
+                          "width": 18,
+                          "height": 18
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ZG6jm",
+                          "name": "Half star",
+                          "width": 18,
+                          "height": 18,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "JrW61",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$border-strong",
+                              "width": 18,
+                              "height": 18
+                            },
+                            {
+                              "type": "frame",
+                              "id": "t1JVdX",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Filled half",
+                              "clip": true,
+                              "width": 9,
+                              "height": 18,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "path",
+                                  "id": "h70J20",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Star",
+                                  "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                                  "viewBox": [
+                                    0,
+                                    0,
+                                    24,
+                                    24
+                                  ],
+                                  "fill": "$rating",
+                                  "width": 18,
+                                  "height": 18
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "YVLho",
+                  "type": "ref",
+                  "ref": "dq0Pe",
+                  "name": "atoms__desktop__dark__atoms-ratingstars--sizes",
+                  "theme": {
+                    "mode": "dark"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "YqgLo",
+          "name": "atoms-ratingstars--in-text",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "f6c5F",
+              "name": "Label",
+              "fill": "$ink-muted",
+              "content": "atoms-ratingstars--in-text",
+              "lineHeight": 1.2,
+              "fontFamily": "$font-mono",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "r0uJm",
+              "name": "Tiles",
+              "gap": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "V1mZL",
+                  "name": "atoms__desktop__light__atoms-ratingstars--in-text",
+                  "theme": {
+                    "mode": "light"
+                  },
+                  "reusable": true,
+                  "clip": true,
+                  "width": 1248,
+                  "height": 21,
+                  "fill": "$bg",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "T7uqeQ",
+                      "name": "Score",
+                      "fill": "$text",
+                      "content": "4.9",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "U3wRec",
+                      "name": "Stars · baseline",
+                      "width": 70,
+                      "height": 21,
+                      "layout": "vertical",
+                      "padding": [
+                        5,
+                        0,
+                        2,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nyvdd",
+                          "name": "RatingStars · 5",
+                          "width": 70,
+                          "height": 14,
+                          "children": [
+                            {
+                              "type": "path",
+                              "id": "q93wUa",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 14,
+                              "height": 14
+                            },
+                            {
+                              "type": "path",
+                              "id": "X6PshJ",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 14,
+                              "height": 14
+                            },
+                            {
+                              "type": "path",
+                              "id": "VJWan",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 14,
+                              "height": 14
+                            },
+                            {
+                              "type": "path",
+                              "id": "bWnTo",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 14,
+                              "height": 14
+                            },
+                            {
+                              "type": "path",
+                              "id": "zJP2w",
+                              "name": "Star",
+                              "geometry": "M12 2.5l2.94 6.26 6.86 0.75-5.1 4.64 1.42 6.75-6.12-3.4-6.12 3.4 1.42-6.75-5.1-4.64 6.86-0.75z",
+                              "viewBox": [
+                                0,
+                                0,
+                                24,
+                                24
+                              ],
+                              "fill": "$rating",
+                              "width": 14,
+                              "height": 14
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "SYIkf",
+                      "name": "Count",
+                      "fill": "$text-muted",
+                      "content": "(132 reviews)",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "Kwe0c",
+                  "type": "ref",
+                  "ref": "V1mZL",
+                  "name": "atoms__desktop__dark__atoms-ratingstars--in-text",
+                  "theme": {
+                    "mode": "dark"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
           "id": "l0xQ7",
           "name": "atoms-segmentedcontrol--default",
           "layout": "vertical",
