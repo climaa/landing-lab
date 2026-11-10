@@ -71,14 +71,14 @@ seo:
     - uses: actions/setup-node@v4
       with: { node-version: 22, cache: pnpm }
     - run: pnpm install --frozen-lockfile --filter @lab/seo-guard...
-    - run: pnpm --filter @lab/seo-guard exec seo-guard --sitemap https://your-site.example/sitemap.xml
+    - run: pnpm seo-guard --sitemap https://your-site.example/sitemap.xml
 ```
 
 ## Anywhere else
 
 ```sh
-pnpm --filter @lab/seo-guard exec seo-guard --sitemap https://your-site.example/sitemap.xml
-pnpm --filter @lab/seo-guard exec seo-guard https://your-site.example/a https://your-site.example/b --json
+pnpm seo-guard --sitemap https://your-site.example/sitemap.xml
+pnpm seo-guard https://your-site.example/a https://your-site.example/b --json
 ```
 
 Every page listed must answer 200, or the run exits 2. Linked pages and alternates

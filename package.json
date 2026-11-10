@@ -22,6 +22,7 @@
     "visual-diff": "node packages/visual-diff/src/cli.mjs check",
     "visual-diff:accept": "node scripts/visual-diff-container.mjs accept",
     "visual-diff:container": "node scripts/visual-diff-container.mjs",
+    "seo-guard": "node packages/seo-guard/src/cli.mjs",
     "typecheck:sandcastle": "tsc --noEmit -p .sandcastle/tsconfig.json",
     "test:sandcastle": "vitest run --config vitest.sandcastle.config.mts",
     "gate": "node scripts/gate/run.mjs",
