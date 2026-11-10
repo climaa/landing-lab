@@ -1,0 +1,169 @@
+import * as fs from 'fs';
+import { SANDCASTLE, read } from './helpers';
+
+describe('sandcastle PR-based merge flow', () => {
+  describe('merge-prompt.md', () => {
+    const content = read('agent-docs/merge-prompt.md');
+
+    it('does not directly push to main', () => {
+      expect(content).not.toMatch(/git push origin main/);
+    });
+
+    it('opens a PR with gh pr create', () => {
+      expect(content).toMatch(/gh pr create/);
+    });
+
+    it('enables squash auto-merge', () => {
+      expect(content).toMatch(
+        /gh pr merge.*--squash.*--auto|gh pr merge.*--auto.*--squash/,
+      );
+    });
+
+    // 5 Oct 2026, downstream in climaa/mape-tournament: two PRs stayed CLEAN
+    // and unmerged for the whole poll. `--auto` straight after `gh pr create` met an UNKNOWN merge state,
+    // tried to arm auto-merge in a repo that does not allow it, and the loop
+    // then treated CLEAN as "keep polling".
+    it('lets GitHub compute mergeability before the first --auto', () => {
+      const step3 = content.slice(
+        content.indexOf('## Step 3'),
+        content.indexOf('## Step 4'),
+      );
+      const wait = step3.indexOf('"UNKNOWN"');
+      const merge = step3.indexOf('gh pr merge <PR_NUMBER> --squash --auto');
+      expect(wait).toBeGreaterThan(-1);
+      expect(merge).toBeGreaterThan(wait);
+    });
+
+    it('re-merges a CLEAN PR whose auto-merge is not armed, inside the poll', () => {
+      const step4 = content.slice(
+        content.indexOf('## Step 4'),
+        content.indexOf('## Step 5'),
+      );
+      expect(step4).toMatch(/autoMergeRequest/);
+      expect(step4).toMatch(
+        /CLEAN[^)]*\)\s*\n\s*if \[ "\$ARMED" = "false" \]; then\s*\n\s*gh pr merge <PR_NUMBER> --squash --auto/,
+      );
+    });
+
+    it('no longer lists CLEAN among the states that only wait', () => {
+      const step4 = content.slice(
+        content.indexOf('## Step 4'),
+        content.indexOf('## Step 5'),
+      );
+      const waitLine = step4
+        .split('\n')
+        .find((line) => line.startsWith('- Anything else'));
+      expect(waitLine).toBeDefined();
+      expect(waitLine).not.toMatch(/CLEAN/);
+    });
+
+    it('waits for PR state via gh pr view', () => {
+      expect(content).toMatch(/gh pr view/);
+    });
+
+    it('closes issue with PR URL on MERGED state', () => {
+      expect(content).toMatch(/MERGED/);
+      expect(content).toMatch(/gh issue close/);
+    });
+
+    it('handles CLOSED/timeout without closing issue', () => {
+      expect(content).toMatch(/CLOSED/);
+      expect(content).toMatch(/gh issue comment/);
+    });
+
+    it('pushes the issue branch (not main)', () => {
+      expect(content).toMatch(/git push origin/);
+    });
+
+    it('PR body includes Closes #<ID>', () => {
+      expect(content).toMatch(/Closes #/);
+    });
+
+    it('closes an issue from exactly one command, and only on the MERGED path', () => {
+      // `Closes #<ID>` in a PR body is a second, implicit closing mechanism —
+      // GitHub fires it on merge — and a PR that changes no files still merges.
+      // Step 1b keeps such a branch out of a PR entirely; this guards the
+      // explicit half: no other command in the prompt may close an issue.
+      const closing = [...content.matchAll(/```bash\n([\s\S]*?)```/g)]
+        .map((m) => m[1]!)
+        .filter((block) => block.includes('gh issue close'));
+      expect(closing).toHaveLength(1);
+      expect(closing[0]).toMatch(/Merged via PR/);
+    });
+
+    it('ticks issue checkboxes through the host script, in the closing block', () => {
+      // #672: a sed over the issue body ticked a box the PR left for a human.
+      const closing = [...content.matchAll(/```bash\n([\s\S]*?)```/g)]
+        .map((m) => m[1]!)
+        .find((block) => block.includes('gh issue close'));
+      expect(closing).toMatch(
+        /node \.sandcastle\/sandcastle-tick-criteria\.mts <ID> <PR_NUMBER>/,
+      );
+      expect(content).not.toMatch(/sed[^\n]*\[x\]/);
+    });
+
+    it('posts the closing comment on its own, so an issue the PR already closed still gets it', () => {
+      // #683: `Closes #<ID>` closes the issue on merge, and `gh issue close
+      // --comment` on a closed issue skips the comment along with the close.
+      // Arrange
+      const closing = [...content.matchAll(/```bash\n([\s\S]*?)```/g)]
+        .map((m) => m[1]!)
+        .find((block) => block.includes('gh issue close'))!;
+
+      // Act
+      const commentAt = closing.search(/gh issue comment <ID> --body "\$CLOSE_COMMENT"/);
+      const closeLine = closing
+        .split('\n')
+        .find((line) => line.includes('gh issue close'))!;
+
+      // Assert
+      expect(commentAt).toBeGreaterThan(-1);
+      expect(commentAt).toBeLessThan(closing.indexOf('gh issue close'));
+      expect(closeLine).not.toMatch(/--comment/);
+      expect(closeLine).toMatch(/gh issue close <ID>\s*\|\|/);
+    });
+
+    it('deletes the issue branch only on MERGED state', () => {
+      expect(content).toMatch(/git push origin --delete/);
+      const deleteBlock = content.match(
+        /if \[ "\$PR_STATE" = "MERGED" \][\s\S]*?git push origin --delete[\s\S]*?fi/,
+      );
+      expect(deleteBlock).not.toBeNull();
+    });
+
+    it('does not delete the branch unconditionally', () => {
+      const lines = content.split('\n');
+      const unconditional = lines.filter(
+        (line, i) =>
+          line.includes('git push origin --delete') &&
+          !lines
+            .slice(Math.max(0, i - 5), i)
+            .some((prev) => /PR_STATE.*MERGED/.test(prev)),
+      );
+      expect(unconditional).toHaveLength(0);
+    });
+  });
+
+  describe('main.mts', () => {
+    const content = read('main.mts');
+
+    it('does not contain git push origin main', () => {
+      expect(content).not.toMatch(/git push origin main/);
+    });
+
+    it('does not local-merge branches into main', () => {
+      expect(content).not.toMatch(/git merge.*--no-edit/);
+    });
+  });
+
+  describe('no file in .sandcastle/ pushes directly to main', () => {
+    it('grep returns no matches across all prompt files', () => {
+      const files = fs
+        .readdirSync(SANDCASTLE)
+        .filter((f) => f.endsWith('.md') || f.endsWith('.mts'));
+      for (const file of files) {
+        expect(read(file)).not.toMatch(/git push origin main/);
+      }
+    });
+  });
+});

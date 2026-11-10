@@ -1,0 +1,54 @@
+/*
+ * Clip-rect pattern: shrinks content to a 1px box and clips it, rather than
+ * `display: none` or `visibility: hidden`, either of which would also remove
+ * it from the accessibility tree. Shared so no consumer — SkipLink today —
+ * copies the declarations a second time.
+ */
+.ds-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ds-stack {
+  display: flex;
+  min-width: 0;
+}
+
+.ds-container {
+  width: 100%;
+  max-width: var(--width-container);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+
+/* The same gutters with no measure: for a screen that is a workspace rather than
+   something to read, where the content wants every pixel of a wide window. A
+   modifier rather than a consumer overriding `.ds-container` from its own
+   stylesheet — that only ever won on source order, and would have failed
+   silently the day this rule gained a layer, a media query or a second
+   selector. */
+.ds-container--full {
+  max-width: none;
+}
+
+/* A scroll container for content with an intrinsic minimum width — a wide table
+   is the case that forces it. `overflow-x` cannot do this job on the element
+   itself: a `<table>` only scrolls once it is `display: block`, and a block
+   table stops stretching its columns to the full measure, so the fix would
+   change every table that already fits in order to rescue the few that do not.
+   Wrapping leaves the table a table.
+
+   `tabindex` belongs on the consumer, not here: a scroll container that only a
+   mouse can reach is unreachable by keyboard, and whether the element is
+   focusable is a decision about the content, not about the overflow. */
+.ds-scroll-x {
+  overflow-x: auto;
+  max-width: 100%;
+}

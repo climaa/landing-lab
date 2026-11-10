@@ -1,0 +1,136 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalDependencies": ["**/.env.*local"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": [
+        "VERCEL_ENV",
+        "VERCEL_OBSERVABILITY_CLIENT_CONFIG",
+        "NEXT_PUBLIC_BUGSINK_DSN",
+        "BLOG_RELEASES_FIXTURE",
+        "GITHUB_TOKEN"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "storybook-static/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/vitest.shared.mjs",
+        "$TURBO_ROOT$/.github/workflows/pr.yml",
+        "$TURBO_ROOT$/.github/workflows/changelog-check.yml"
+      ]
+    },
+    "e2e": {
+      "dependsOn": ["@lab/blog#build", "@lab/visual-diff-ui#build"],
+      "cache": false
+    },
+    "health": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/complexity-gate.mjs"],
+      "outputs": []
+    },
+    "@lab/visual-diff-ui#build": {
+      "dependsOn": ["^build"],
+      "env": [
+        "VERCEL_ENV",
+        "VERCEL_OBSERVABILITY_CLIENT_CONFIG",
+        "NEXT_PUBLIC_BUGSINK_DSN"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "$TURBO_ROOT$/packages/visual-diff/__baselines__/**",
+        "$TURBO_ROOT$/pnpm-workspace.yaml",
+        "$TURBO_ROOT$/package.json"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "@lab/storybook#build": {
+      "dependsOn": ["^build"],
+      "env": [
+        "VERCEL_ENV",
+        "VERCEL_OBSERVABILITY_CLIENT_CONFIG",
+        "NEXT_PUBLIC_BUGSINK_DSN",
+        "BLOG_RELEASES_FIXTURE",
+        "GITHUB_TOKEN"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "$TURBO_ROOT$/designs/exports/**",
+        "$TURBO_ROOT$/apps/visual-diff-ui/{app,components,lib,hooks,fixtures}/**",
+        "$TURBO_ROOT$/apps/visual-diff-ui/scripts/project-name.mjs",
+        "$TURBO_ROOT$/package.json"
+      ],
+      "outputs": ["storybook-static/**"]
+    },
+    "//#boards:check": {
+      "dependsOn": ["@lab/storybook#build"],
+      "inputs": [
+        "$TURBO_ROOT$/designs/*.pen",
+        "$TURBO_ROOT$/designs/exports/**",
+        "$TURBO_ROOT$/designs/*-stories.json",
+        "$TURBO_ROOT$/scripts/board-scale-integrity.mjs",
+        "$TURBO_ROOT$/packages/visual-diff/src/policy.mjs",
+        "$TURBO_ROOT$/packages/visual-diff/src/storybook-index.mjs"
+      ],
+      "outputs": []
+    },
+    "@lab/manual#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/e2e/features/acceptance/*.feature"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "@lab/manual#test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/vitest.shared.mjs",
+        "$TURBO_ROOT$/.github/workflows/pr.yml",
+        "$TURBO_ROOT$/apps/e2e/features/acceptance/*.feature",
+        "$TURBO_ROOT$/apps/visual-diff-ui/fixtures/reports/*/summary.json"
+      ]
+    },
+    "@lab/visual-diff#test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/vitest.shared.mjs",
+        "$TURBO_ROOT$/.github/workflows/pr.yml",
+        "$TURBO_ROOT$/.github/workflows/changelog-check.yml",
+        "$TURBO_ROOT$/packages/ui/src/**/*.css"
+      ]
+    },
+    "@lab/visual-diff-ui#test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/vitest.shared.mjs",
+        "$TURBO_ROOT$/.github/workflows/pr.yml",
+        "$TURBO_ROOT$/.github/workflows/changelog-check.yml",
+        "$TURBO_ROOT$/packages/ui/src/atoms/IconButton/IconButton.stories.tsx",
+        "$TURBO_ROOT$/designs/exports/**",
+        "$TURBO_ROOT$/package.json"
+      ]
+    }
+  }
+}

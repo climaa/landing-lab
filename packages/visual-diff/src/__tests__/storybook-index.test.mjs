@@ -1,0 +1,409 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  ABSENT_TAG,
+  ALL_VIEWPORTS_TAG,
+  FULLPAGE_TAG,
+  LOCALES,
+  LOCALES_TAG,
+  MOBILE_ONLY_TAG,
+  SKIP_TAG,
+  THEMES,
+  VIEWPORTS,
+  variantKey,
+} from '../policy.mjs';
+import { IndexError, planCaptures, readIndex } from '../storybook-index.mjs';
+
+/** A story entry in the shape Storybook 10 writes into `index.json`, minus the fields
+ *  the differ never reads. */
+const storyEntry = (overrides = {}) => ({
+  id: 'atoms-button--primary',
+  title: 'Atoms/Button',
+  name: 'Primary',
+  type: 'story',
+  importPath: '../../packages/ui/src/atoms/Button/Button.stories.tsx',
+  ...overrides,
+});
+
+const templateEntry = (overrides = {}) =>
+  storyEntry({
+    id: 'templates-postlayout--default',
+    title: 'Templates/PostLayout',
+    importPath: '../../packages/ui/src/templates/PostLayout/PostLayout.stories.tsx',
+    ...overrides,
+  });
+
+const indexJson = (...entries) =>
+  JSON.stringify({
+    v: 5,
+    entries: Object.fromEntries(entries.map((entry) => [entry.id, entry])),
+  });
+
+/** Every entries-level shape a broken build can produce, none of which the differ may
+ *  read as "this Storybook has no stories". */
+const emptyIndexes = {
+  'no entries key': JSON.stringify({ v: 5 }),
+  'a null entries': JSON.stringify({ v: 5, entries: null }),
+  'an entries array (the pre-v4 shape)': JSON.stringify({ v: 3, entries: [] }),
+  'an empty entries object': JSON.stringify({ v: 5, entries: {} }),
+  'a top-level array': JSON.stringify([]),
+};
+
+describe('readIndex', () => {
+  it('returns one entry per index entry, in index order', () => {
+    const json = indexJson(storyEntry(), templateEntry());
+
+    const entries = readIndex(json);
+
+    expect(entries.map((entry) => entry.id)).toEqual([
+      'atoms-button--primary',
+      'templates-postlayout--default',
+    ]);
+  });
+
+  it('keeps docs entries — filtering by type is the caller’s job, not the parser’s', () => {
+    const json = indexJson(storyEntry({ id: 'atoms-button--docs', type: 'docs' }));
+
+    const entries = readIndex(json);
+
+    expect(entries).toHaveLength(1);
+  });
+
+  it('accepts an entry with no tags', () => {
+    const json = indexJson(storyEntry());
+
+    const [entry] = readIndex(json);
+
+    expect(entry.tags).toEqual([]);
+  });
+
+  it('carries tags through verbatim', () => {
+    const json = indexJson(storyEntry({ tags: [SKIP_TAG, 'autodocs'] }));
+
+    const [entry] = readIndex(json);
+
+    expect(entry.tags).toEqual([SKIP_TAG, 'autodocs']);
+  });
+
+  it('throws on text that is not JSON', () => {
+    const json = 'storybook-static/index.json: 404 Not Found';
+
+    expect(() => readIndex(json)).toThrow(IndexError);
+  });
+
+  it('throws when handed something other than the file text', () => {
+    const notText = { entries: { 'atoms-button--primary': storyEntry() } };
+
+    expect(() => readIndex(notText)).toThrow(IndexError);
+  });
+
+  for (const [shape, json] of Object.entries(emptyIndexes)) {
+    it(`throws on ${shape}`, () => {
+      expect(() => readIndex(json)).toThrow(IndexError);
+    });
+  }
+
+  for (const field of ['id', 'title', 'type', 'importPath']) {
+    it(`throws when an entry has no ${field}`, () => {
+      const entry = storyEntry();
+      delete entry[field];
+      const json = JSON.stringify({ v: 5, entries: { 'atoms-button--primary': entry } });
+
+      expect(() => readIndex(json)).toThrow(IndexError);
+    });
+  }
+
+  it('throws when an entry field has the wrong type', () => {
+    const json = indexJson(storyEntry({ importPath: 42 }));
+
+    expect(() => readIndex(json)).toThrow(IndexError);
+  });
+
+  it('throws when tags is not an array', () => {
+    const json = indexJson(storyEntry({ tags: SKIP_TAG }));
+
+    expect(() => readIndex(json)).toThrow(IndexError);
+  });
+
+  it('throws when a tag is not a string', () => {
+    const json = indexJson(storyEntry({ tags: [{ name: SKIP_TAG }] }));
+
+    expect(() => readIndex(json)).toThrow(IndexError);
+  });
+
+  it('names the offending entry, so a broken gate says which story broke it', () => {
+    const json = indexJson(storyEntry({ importPath: 42 }));
+
+    expect(() => readIndex(json)).toThrow(/atoms-button--primary/);
+  });
+});
+
+describe('readIndex with a root', () => {
+  it('carries the build it was read from on every entry', () => {
+    const json = indexJson(storyEntry(), templateEntry());
+
+    const entries = readIndex(json, 'apps/storybook-native/storybook-static');
+
+    expect(entries.map((entry) => entry.root)).toEqual([
+      'apps/storybook-native/storybook-static',
+      'apps/storybook-native/storybook-static',
+    ]);
+  });
+
+  it('gives each planned variant its entry’s build', () => {
+    const entries = readIndex(indexJson(storyEntry()), 'apps/storybook/storybook-static');
+
+    const { variants } = planCaptures(entries);
+
+    expect(new Set(variants.map((variant) => variant.root))).toEqual(
+      new Set(['apps/storybook/storybook-static']),
+    );
+  });
+
+  it('refuses one story id listed by two builds', () => {
+    const entries = [
+      ...readIndex(indexJson(storyEntry()), 'apps/storybook/storybook-static'),
+      ...readIndex(indexJson(storyEntry()), 'apps/storybook-native/storybook-static'),
+    ];
+
+    const planning = () => planCaptures(entries);
+
+    expect(planning).toThrow(/more than one Storybook build lists atoms-button--primary/);
+  });
+
+  it('reads an empty build as no entries when asked to allow one', () => {
+    const json = JSON.stringify({ v: 5, entries: {} });
+
+    const entries = readIndex(json, 'apps/storybook-native/storybook-static', {
+      allowEmpty: true,
+    });
+
+    expect(entries).toEqual([]);
+  });
+
+  it('still refuses a build that is not an index when empty ones are allowed', () => {
+    const reading = () => readIndex(JSON.stringify({ v: 5 }), 'x', { allowEmpty: true });
+
+    expect(reading).toThrow(IndexError);
+  });
+
+  it('reads an entry without a root as it always has', () => {
+    const entries = readIndex(indexJson(storyEntry()));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.every((variant) => !('root' in variant))).toBe(true);
+  });
+});
+
+describe('planCaptures', () => {
+  it('expands an atom into one variant per theme at desktop only', () => {
+    const entries = readIndex(indexJson(storyEntry()));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.map((variant) => variant.key)).toEqual(
+      THEMES.map((theme) =>
+        variantKey({
+          tier: 'atoms',
+          viewport: 'desktop',
+          theme,
+          id: 'atoms-button--primary',
+        }),
+      ),
+    );
+  });
+
+  it('expands a template across both viewports and both themes', () => {
+    const entries = readIndex(indexJson(templateEntry()));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants).toHaveLength(Object.keys(VIEWPORTS).length * THEMES.length);
+  });
+
+  it('gives every variant a distinct key', () => {
+    const entries = readIndex(indexJson(storyEntry(), templateEntry()));
+
+    const { variants } = planCaptures(entries);
+
+    expect(new Set(variants.map((variant) => variant.key)).size).toBe(variants.length);
+  });
+
+  it('captures no docs entry', () => {
+    const entries = readIndex(
+      indexJson(storyEntry(), storyEntry({ id: 'atoms-button--docs', type: 'docs' })),
+    );
+
+    const { variants } = planCaptures(entries);
+
+    expect(new Set(variants.map((variant) => variant.id))).toEqual(
+      new Set(['atoms-button--primary']),
+    );
+  });
+
+  it(`widens a tagged ${ALL_VIEWPORTS_TAG} atom to every viewport`, () => {
+    const entries = readIndex(indexJson(storyEntry({ tags: [ALL_VIEWPORTS_TAG] })));
+
+    const { variants } = planCaptures(entries);
+
+    expect(new Set(variants.map((variant) => variant.viewport))).toEqual(
+      new Set(Object.keys(VIEWPORTS)),
+    );
+  });
+
+  it(`narrows a tagged ${MOBILE_ONLY_TAG} template to the mobile viewport, in every theme`, () => {
+    const entries = readIndex(indexJson(templateEntry({ tags: [MOBILE_ONLY_TAG] })));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.map(({ viewport, theme }) => `${viewport} ${theme}`)).toEqual(
+      THEMES.map((theme) => `mobile ${theme}`),
+    );
+  });
+
+  it(`moves a tagged ${MOBILE_ONLY_TAG} atom off desktop and onto mobile`, () => {
+    const entries = readIndex(indexJson(storyEntry({ tags: [MOBILE_ONLY_TAG] })));
+
+    const { variants } = planCaptures(entries);
+
+    expect(new Set(variants.map((variant) => variant.viewport))).toEqual(
+      new Set(['mobile']),
+    );
+  });
+
+  it(`refuses a story tagged both ${MOBILE_ONLY_TAG} and ${ALL_VIEWPORTS_TAG}`, () => {
+    const entries = readIndex(
+      indexJson(storyEntry({ tags: [MOBILE_ONLY_TAG, ALL_VIEWPORTS_TAG] })),
+    );
+
+    const planning = () => planCaptures(entries);
+
+    expect(planning).toThrow(IndexError);
+    expect(planning).toThrow(/atoms-button--primary carries both/);
+  });
+
+  it(`captures a ${LOCALES_TAG} atom once per locale in every theme`, () => {
+    const entries = readIndex(indexJson(storyEntry({ tags: [LOCALES_TAG] })));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.map((variant) => variant.key)).toEqual(
+      THEMES.flatMap((theme) =>
+        LOCALES.map((locale) =>
+          variantKey({
+            tier: 'atoms',
+            viewport: 'desktop',
+            theme,
+            locale,
+            id: 'atoms-button--primary',
+          }),
+        ),
+      ),
+    );
+  });
+
+  it('gives an unlisted story no locale, so its keys are the ones it had before the axis', () => {
+    const entries = readIndex(indexJson(storyEntry(), templateEntry()));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.some((variant) => 'locale' in variant)).toBe(false);
+  });
+
+  it(`crosses ${LOCALES_TAG} with ${ALL_VIEWPORTS_TAG} rather than letting one replace the other`, () => {
+    const entries = readIndex(
+      indexJson(storyEntry({ tags: [LOCALES_TAG, ALL_VIEWPORTS_TAG] })),
+    );
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants).toHaveLength(
+      Object.keys(VIEWPORTS).length * THEMES.length * LOCALES.length,
+    );
+  });
+
+  it('leaves the tier of a widened story alone — the override moves no story', () => {
+    const entries = readIndex(indexJson(storyEntry({ tags: [ALL_VIEWPORTS_TAG] })));
+
+    const { variants } = planCaptures(entries);
+
+    for (const variant of variants) {
+      expect(variant.tier).toBe('atoms');
+    }
+  });
+
+  it(`captures no variant of a ${SKIP_TAG} story`, () => {
+    const entries = readIndex(
+      indexJson(storyEntry({ tags: [SKIP_TAG] }), templateEntry()),
+    );
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.map((variant) => variant.id)).not.toContain('atoms-button--primary');
+  });
+
+  it('reports a skipped story rather than hiding it', () => {
+    const entries = readIndex(
+      indexJson(storyEntry({ tags: [SKIP_TAG] }), templateEntry()),
+    );
+
+    const { skipped } = planCaptures(entries);
+
+    expect(skipped).toEqual(['atoms-button--primary']);
+  });
+
+  it(`marks every variant of a ${FULLPAGE_TAG} story for a whole-page shot`, () => {
+    const entries = readIndex(indexJson(templateEntry({ tags: [FULLPAGE_TAG] })));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.every((variant) => variant.fullPage)).toBe(true);
+  });
+
+  it(`marks every variant of a ${ABSENT_TAG} story as drawing nothing`, () => {
+    const entries = readIndex(indexJson(storyEntry({ tags: [ABSENT_TAG] })));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.every((variant) => variant.absent)).toBe(true);
+  });
+
+  it('expects an untagged story to draw something', () => {
+    const entries = readIndex(indexJson(storyEntry()));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.every((variant) => variant.absent)).toBe(false);
+  });
+
+  it('shoots the capture target by default', () => {
+    const entries = readIndex(indexJson(templateEntry()));
+
+    const { variants } = planCaptures(entries);
+
+    expect(variants.every((variant) => variant.fullPage)).toBe(false);
+  });
+
+  it('throws on a story outside the four tier folders rather than inventing a tier', () => {
+    const entries = readIndex(
+      indexJson(storyEntry({ importPath: '../src/compositions/Home.stories.tsx' })),
+    );
+
+    expect(() => planCaptures(entries)).toThrow(IndexError);
+  });
+
+  it('throws on an index whose entries are all docs — a build that produced no stories', () => {
+    const entries = readIndex(
+      indexJson(storyEntry({ id: 'atoms-button--docs', type: 'docs' })),
+    );
+
+    expect(() => planCaptures(entries)).toThrow(IndexError);
+  });
+
+  it('does not throw when every story was skipped — a skip is deliberate, not broken', () => {
+    const entries = readIndex(indexJson(storyEntry({ tags: [SKIP_TAG] })));
+
+    expect(() => planCaptures(entries)).not.toThrow();
+  });
+});

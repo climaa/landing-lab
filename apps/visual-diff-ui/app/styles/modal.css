@@ -1,0 +1,507 @@
+/* ---- The comparison modal ----------------------------------------------- */
+
+.vd-compare__head {
+  justify-content: space-between;
+}
+
+/* The thumb bar: the full width of the sheet below the breakpoint, so every
+   mode is a target the thumb reaches without crossing it. */
+.vd-compare__modes {
+  width: 100%;
+}
+
+.vd-compare__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vd-compare__foot {
+  justify-content: space-between;
+}
+
+.vd-copy-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.vd-compare__metric,
+.vd-compare__sides,
+.vd-compare__hint,
+.vd-copy-link__status {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* The stage scrolls and the scroll stops here: a flick that reaches the end of
+   a screenshot must not carry on into the report behind the modal. The
+   checkerboard is what makes a transparent pixel visible as one — a shot on a
+   flat ground would read as opaque wherever the ground shows through.
+
+   A fixed height rather than a cap: the six modes show images of three
+   different intrinsic sizes — a variant records a size delta, and the diff is
+   the union of both sides — so a stage sized by its contents resizes the whole
+   dialog on every mode change, and once a second in `blink`. Holding the frame
+   still is the whole fix; the shot inside is never scaled, because a viewer for
+   one-pixel differences cannot resample the evidence to make it fit.
+
+   `dvh`, not `vh`: `vh` measures the viewport with the mobile URL bar retracted,
+   which is space the reader does not have while it is showing — a stage sized
+   from it pushes the scrubber and the hint off a phone, and the stage contains
+   its own overscroll, so there is little left to grab to scroll them back. */
+.vd-compare__stage {
+  position: relative;
+  block-size: 60dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-subtle);
+}
+
+/* The checkerboard is what makes a transparent pixel visible as one — a shot on
+   a flat ground would read as opaque wherever the ground shows through. Behind
+   the shot rather than across the stage: the stage is now taller than most
+   shots, and a checkerboard filling the space under one would be claiming
+   transparency for pixels that are not in the image at all. */
+.vd-compare__shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  background-image: repeating-conic-gradient(
+    var(--color-bg-muted) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: var(--space-4) var(--space-4);
+}
+
+/* 1:1 CSS pixels, and every pixel drawn as itself: a scaled screenshot
+   interpolates exactly the one-pixel differences this whole tool exists to
+   find. The stage scrolls to reach the rest of the shot. */
+.vd-compare__shot--actual {
+  width: auto;
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+/* The after screenshot with the boxes its readings point at. The boxes are
+   placed as shares of the shot's own pixels, so the frame they sit in has to
+   be exactly the image's box: the stage's width when fitted, the image's own
+   at 1:1. */
+.vd-compare__marked {
+  position: relative;
+}
+
+.vd-compare__marked--actual {
+  width: max-content;
+}
+
+/* A plain box is a hairline, the one a reader is pointing at a heavier line
+   over a wash of the same accent — PanZoom's marks, so a box reads the same in
+   a comparison and in a shot view. Nothing animates. */
+.vd-compare__marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vd-compare__mark {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--color-accent);
+}
+
+.vd-compare__mark--emphasis {
+  border-width: 2px;
+  background: var(--color-accent-subtle);
+}
+
+.vd-compare__absent {
+  margin: 0;
+  padding: var(--space-6);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.vd-compare__split {
+  position: relative;
+}
+
+/* The candidate over the baseline, clipped at the divider — the clip is inline,
+   because it is the one value the pointer decides. */
+.vd-compare__over {
+  position: absolute;
+  inset: 0;
+}
+
+.vd-compare__divider {
+  position: absolute;
+  inset-block: 0;
+  width: 2px;
+  background: var(--color-accent);
+  cursor: ew-resize;
+  /* The gesture is the drag itself, so the browser must not read it as a pan. */
+  touch-action: none;
+}
+
+.vd-compare__handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  box-shadow: var(--shadow-md);
+  transform: translate(-50%, -50%);
+}
+
+/* ---- The scrubber ------------------------------------------------------- */
+
+/* The divider's accessible twin: the same number, reachable from the keyboard
+   and wide enough to drag with a thumb. */
+.vd-scrub {
+  position: relative;
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-muted);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.vd-scrub:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.vd-scrub__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: inherit;
+  background: var(--color-accent-subtle);
+}
+
+.vd-scrub__knob {
+  position: absolute;
+  top: 50%;
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  transform: translate(-50%, -50%);
+}
+
+/* The design view: the board and the after screenshot side by side above the
+   breakpoint, stacked below it with the board on top. Both are PanZooms that
+   fill the stage — the stage stops scrolling here, because each pane clips and
+   moves its own image, and a scrolling stage around two panning panes would be
+   two ways of moving one thing. */
+.vd-compare__stage--design {
+  overflow: hidden;
+  border: 0;
+  background-color: transparent;
+}
+
+.vd-compare__design {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* Stacked: each pane's control row, then the pane. */
+  grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  row-gap: var(--space-2);
+  column-gap: var(--space-4);
+  block-size: 100%;
+}
+
+/* A column is a pane that takes the whole of it. Each pane's own control row
+   carries what it holds — the board picker, or the after caption — so both
+   panes start on the same line and a board can be read against the shot. */
+/* Each column takes two of the design grid's rows — its control row and its
+   pane — through `subgrid`, and the PanZoom between them steps aside with
+   `display: contents`. So the two columns share one control-row height: when
+   one row wraps — a narrow window, a file name — both panes still start on
+   the same line, which is the whole point of putting them side by side. */
+.vd-compare__column {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  min-width: 0;
+  min-height: 0;
+}
+
+.vd-compare__column > .ds-panzoom {
+  display: contents;
+}
+
+/* Packed to the foot of the shared row: when the board's row wraps, its zoom
+   controls drop to a second line, and the after row's controls sit on that same
+   line rather than floating in the middle — one box, read the same on both
+   sides. */
+.vd-compare__panzoom .ds-panzoom__bar {
+  align-content: flex-end;
+}
+
+/* The controls sit on the row's foot on both sides, wrapped or not, so the two
+   zoom readouts always share one line. */
+.vd-compare__panzoom .ds-panzoom__controls {
+  align-self: flex-end;
+}
+
+.vd-compare__panzoom .ds-panzoom__pane {
+  block-size: auto;
+  min-block-size: var(--space-16);
+}
+
+.vd-compare__label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.vd-compare__local-name {
+  display: inline-block;
+  max-inline-size: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.vd-compare__caption {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Above the breakpoint the design view takes nearly the whole window: two
+   panes side by side need the width a single shot never did. Scoped to the
+   design view — the six modes keep the dialog's own width. */
+@media (min-width: 768px) {
+  .vd-compare--design .ds-dialog__surface {
+    inline-size: 95vw;
+    max-inline-size: 95vw;
+  }
+
+  .vd-compare__design[data-split='columns'] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+}
+
+/* ---- The spacing readings -------------------------------------------------- */
+
+/* A full-width row below the shots, as x-visual-diff-pages draws it: a panel in
+   the same ink as the console's, holding a heading, the mode it is reading in,
+   and the table. Never in the head. */
+.vd-readings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-subtle);
+}
+
+/* The mode, and what wrote a browser-default value: the two asides in the panel,
+   both quieter than the values they qualify. */
+.vd-readings__caption,
+.vd-readings__note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Read down as values rather than across as prose, so every body cell takes the
+   mono face — the generic table gives it to numeric columns only, and a token
+   name is not a number. The heading row keeps the sans face: it is bold, and
+   JetBrains Mono is committed at 400 alone (see Table.css). */
+.vd-readings__table td.ds-table__cell {
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+}
+
+.vd-readings__table .ds-table__cell--header {
+  padding: var(--space-1) var(--space-3);
+}
+
+/* The pressed row carries the accent its box carries on the screenshot, so the
+   row and the outline a reader is pointing at read as one thing in two places. */
+.vd-readings__table .ds-table__row:has([aria-pressed='true']) {
+  background-color: var(--color-accent-subtle);
+}
+
+/* The element's own name, as the accessibility tree gave it — a value to press,
+   not a call to action, so it is set in the face of the row it names and packed
+   to the start of its cell. The weight is not a preference: `.ds-btn` is bold,
+   JetBrains Mono is committed at 400 alone, and the two together would be a
+   weight the engine synthesizes. */
+.vd-readings__element {
+  max-inline-size: 100%;
+  justify-content: flex-start;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-normal);
+}
+
+/* A name can be a sentence. One line of it here, with the whole of it on the
+   control's title; `min-inline-size: 0` is what lets a flex item shrink below
+   its content, which is the very thing being clipped. */
+.vd-readings__label {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- The shot view -------------------------------------------------------- */
+
+/* The expanded presentation: the shot view as the page's own content, with no
+   dialog surface around it. */
+.vd-shot {
+  display: block;
+}
+
+.vd-shot__back {
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+}
+
+/* The title and the published Storybook beside it, as one item of the head row:
+   the heading keeps its ellipsis, and the glyph stays on its line rather than
+   wrapping away from the words it belongs to. */
+.vd-shot__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The dev Storybook, drawn on `viewport/theme · set` — underlined, as x-visual-diff-pages
+   draws it, because nothing else says the words are a way out. */
+.vd-shot__storybook {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vd-shot__published {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-accent);
+}
+
+.vd-shot__published svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.vd-readings__chevron {
+  margin-inline-end: var(--space-1);
+}
+
+/* The fold sits at the end of the readings' head line, after the caption. */
+.vd-readings__fold {
+  margin-inline-start: auto;
+}
+
+/* ---- The shot view's overlay (D7) ----------------------------------------- */
+
+/* One pane, the PanZoom pane's size and frame, so switching to the overlay does
+   not move the layout. It scrolls rather than drags: the arrows nudge the crop. */
+.vd-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.vd-overlay__bar {
+  justify-content: space-between;
+}
+
+.vd-overlay__readout {
+  min-width: 5ch;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.vd-overlay__pane {
+  display: flex;
+  overflow: auto;
+  cursor: auto;
+  touch-action: auto;
+}
+
+/* A desktop shot is wide and short: the pane takes its height, so it is read
+   whole with no vertical scroll. Only a zoom wider than the pane scrolls, and
+   only sideways; a nudged crop past the bottom edge is clipped, not scrolled. */
+.vd-overlay__pane[data-fit] {
+  height: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.vd-overlay__pane:active {
+  cursor: auto;
+}
+
+/* The overlay is one pane and its controls, not two panes: the stage takes its
+   height rather than holding the two panes' 60dvh open around it. */
+.vd-compare__stage--overlay {
+  block-size: auto;
+}
+
+/* Both images at their CSS pixels times the zoom the component writes; the
+   crop sits where the nudge puts it, over the shot, never catching a pointer.
+   Centred in the pane, as x-visual-diff-pages' overlay frame draws it. Auto margins
+   rather than `place-content: center`: a flex item's auto margin collapses to
+   zero once the layers outgrow the pane, so a zoomed shot still scrolls to its
+   top-left edge instead of overflowing where no scrollbar can reach. */
+.vd-overlay__layers {
+  position: relative;
+  flex: none;
+  margin: auto;
+  /* The difference blend mixes the crop with the screenshot only, never with
+     the pane behind it. */
+  isolation: isolate;
+}
+
+/* Relative so the screenshot can take its own nudge when the toggle hands it the
+   move; at offset 0 it sits exactly where a static image would. */
+.vd-overlay__shot {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: none;
+}
+
+.vd-overlay__crop {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+}
+
+/* A visual aid read by eye: what matches the screenshot goes dark, what drifts
+   lights up. Nothing is counted and nothing is judged (D7). */
+.vd-overlay__crop[data-blend='difference'] {
+  mix-blend-mode: difference;
+}
+
+.vd-overlay__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.vd-overlay__label input {
+  accent-color: var(--color-accent);
+}
+
+.vd-overlay__layers[data-magnified] img {
+  image-rendering: pixelated;
+}

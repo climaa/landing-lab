@@ -1,0 +1,43 @@
+/**
+ * The console's stylesheet, as a manifest.
+ *
+ * This file was 1,181 lines and the most-changed file in the app — every
+ * component's rules in one place, separated by comment banners and nothing else.
+ * Banners are not a boundary: a component could not take its styles with it when
+ * it moved, and could not take them with it when it went. #356 retired the accept
+ * tab and its rules had to be found by reading.
+ *
+ * ORDER IS THE CASCADE and these imports are in the order the sections were
+ * written in. `wide.css` is last because it is one `@media (min-width: 768px)`
+ * block that overrides the six above it; moving it up would silently change what
+ * wins. The split was verified by concatenation — the resolved stylesheet is
+ * byte-for-byte what it was.
+ *
+ * Still global, still `.vd-`-prefixed, deliberately. CSS Modules would rename
+ * every class, and `apps/e2e/pages/console.ts` selects on this markup; the design
+ * system next door is a token-and-class system this app extends rather than
+ * escapes. What changes here is where a rule LIVES, not how it is written.
+ *
+ * `__tests__/styles.test.ts` is what makes the boundary real rather than
+ * decorative: every `.vd-` class defined here is used by a component, and every
+ * one a component uses is defined here.
+ */
+
+@import '@lab/ui/styles.css';
+
+/* Native surfaces, the brand line, the sample badge, the mono figures. */
+@import './styles/shell.css';
+/* The board: panels, the sets and reports tables, the pickers. */
+@import './styles/console.css';
+/* The write half: mode tabs, fields, alerts, the live log, the confirmations. */
+@import './styles/run-panel.css';
+/* The report: its header, the review bar, the tier sections, the warnings. */
+@import './styles/report.css';
+/* What a section holds: story cards, variant rows, violations, the three-up. */
+@import './styles/cards.css';
+/* The comparison modal and its scrubber. */
+@import './styles/modal.css';
+/* From 768 px. Last on purpose — see above. */
+@import './styles/set.css';
+
+@import './styles/wide.css';

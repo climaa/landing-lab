@@ -1,0 +1,312 @@
+# TASK
+
+Open a PR per branch, enable squash auto-merge, wait for each PR to merge, then close (or comment on) the corresponding issue.
+
+You have the following completed issue branches:
+
+{{BRANCHES_WITH_ISSUES}}
+
+For **each** branch+issue pair, execute the steps below in order. One failure does not stop the others — handle all pairs before outputting `<promise>COMPLETE</promise>`.
+
+**Do not use `run_in_background: true` for any bash call.** Poll with foreground loops (`while sleep 30; do …; done`) so this process holds no open background handles when you emit `<promise>COMPLETE</promise>`. Sandcastle's completion-signal detector misses the signal if background tasks are pending.
+
+---
+
+## Step 1 — Check out the issue branch
+
+**Check out the branch first.** The PR-body steps below read `HEAD` — `git diff origin/main...HEAD` for the changed-files summary and `gh pr create --head <branch>` — so put the branch in your working tree before you start. Always:
+
+```bash
+git checkout <branch>
+```
+
+> **This checkout lands on the HOST.** Your workspace is a bind-mount of the developer's real checkout, not a private copy. Leaving it on a feature branch means every later command there silently operates on that branch, and the branch cannot be deleted ("used by worktree") — a failure mode hit in production. **When you are completely done with every branch, return the checkout to `main`:**
+>
+> ```bash
+> git checkout main
+> ```
+>
+> The orchestrator also restores this in a `finally` as a backstop, but do it yourself so the log shows the run ended clean.
+
+---
+
+## Step 1b — Confirm the branch has something to land (empty net diff → no PR)
+
+A branch can be ahead of `main` and still carry nothing to land: an implementer that commits an approach and then reverts it leaves commits that cancel out. Every commit-counting check reads that as work, so such a branch can reach you looking exactly like any other. Only the diff can tell the two apart, so ask before you push or open anything:
+
+```bash
+git fetch origin main
+git diff --quiet origin/main...HEAD
+DIFF_STATUS=$?
+case $DIFF_STATUS in
+  0) echo EMPTY ;;
+  1) echo HAS_CONTENT ;;
+  *) echo "DIFF_UNREADABLE (git exited $DIFF_STATUS)" ;;
+esac
+```
+
+Three dots, not two: the question is what _this branch_ changed since it forked, so `main` moving ahead on its own must not read as content. `--quiet` implies `--exit-code`, so read the exit status, not the output: `0` is "no differences", `1` is "differences", and anything above that is git failing to answer — which is a third answer, not a synonym for either.
+
+- **`HAS_CONTENT`** → go to Step 1c and continue through Step 6 exactly as written.
+- **`DIFF_UNREADABLE`** → you do not know which case this is, so do not guess. Open no PR; instead `gh issue comment <ID> --body "Merge phase could not read the diff of branch <branch> against main (git exited <status>). No PR opened. Awaiting manual resolution."` and continue to the next pair. Do **not** apply the label below — nothing here says the branch is a no-op, and labelling it would exclude the issue from the next run's planning on the strength of a git error. Leaving it unmarked is what lets the next run's stranded-branch rescue pick the branch up again.
+- **`EMPTY`** → this branch has nothing to land. **Do not run `git push`, do not run `gh pr create`, and do not write `Closes #<ID>` anywhere for this pair.** A PR with zero file changes still merges, and that keyword then makes GitHub auto-close the issue on merge — recording as resolved an issue nobody resolved. That is worse than leaving it open: it hides work that still needs doing. Instead, mark the issue and move on:
+
+```bash
+gh label create "sandcastle:no-op" --color ededed \
+  --description "Sandcastle ran this issue and produced no changes — needs a human decision" \
+  2>/dev/null || true
+
+gh issue comment <ID> --body-file - <<'EOF'
+**Sandcastle: no net changes produced** (merge phase)
+
+`<branch>` has commits ahead of the base branch, but they cancel out: its net diff
+against base is empty. Something was implemented and then reverted (or the same
+change reached base another way), so there is nothing to land and **no PR was
+opened** — a pull request with zero file changes still merges, and a `Closes`
+line in it would auto-close this issue without the work having been done.
+
+This issue is **left open** on purpose. A real attempt was made and undone — read
+the branch's commits before re-queuing, since re-running the issue as written will
+most likely reproduce the same dead end. Whether the issue itself still stands is a
+human call.
+
+It is labelled `sandcastle:no-op` and skipped for the rest of this run so the
+orchestrator does not re-plan it every iteration. To make it eligible again:
+`gh issue edit <ID> --remove-label "sandcastle:no-op"`.
+EOF
+
+gh issue edit <ID> --add-label "sandcastle:no-op"
+```
+
+The comment body goes in on stdin via `--body-file -` because it is multi-line and full of backticks, neither of which survives interpolation into `--body "…"`. `gh label create` is expected to fail once the label exists; the `--add-label` edit is what actually has to succeed.
+
+**Never `gh issue close` here** — "nothing to land" can mean the work already reached `main` another way, or that the implementer misread the task, and closing would hide the second case. A human reads the comment and decides. **Leave the branch in place** too: it holds the attempt that was reverted, which is what that human goes to read. Then continue to the next branch+issue pair.
+
+---
+
+## Step 1c — Publish the issue branch (skip the push when it is already published)
+
+Never pass `--no-verify` to `git commit` or `git push`. If a hook fails, fix it or stop — do not bypass.
+
+**Check whether there is actually anything to push.** The host already pushes every completed branch to `origin` before this merger runs (`main.mts` `[ci-trigger]`), so in the normal case the branch is _already published_ and a second push is a no-op. Do not gate `gh pr create` on a redundant push that has nothing to send — skip it. First refresh the tracking ref, then compare:
+
+```bash
+git fetch origin <branch>
+COUNTS=$(git rev-list --left-right --count <branch>...origin/<branch>)
+```
+
+- If `COUNTS` is `0\t0` (zero ahead, zero behind — the branch is already published and `origin` has nothing extra), **skip the push entirely** and go straight to Step 2. Do not run `git push`. **Only push when there is something to push.**
+- Otherwise (any non-zero count), the local branch has commits that are not on `origin`, so push it:
+
+  ```bash
+  git push origin <branch>
+  ```
+
+If a push you _did_ run fails (non-zero exit), skip to the keep-open path for this issue:
+`gh issue comment <ID> --body "Push of branch <branch> failed. Awaiting manual resolution."`
+Then continue to the next branch.
+
+---
+
+## Step 2 — Build the PR body and open a PR
+
+### 2a — Fetch issue content
+
+```bash
+ISSUE_BODY=$(gh issue view <ID> --json body --jq '.body')
+```
+
+Parse two sections from `$ISSUE_BODY`:
+
+- **`### Acceptance criteria`** — extract all lines under this H3 until the next H3 or end of body. If the section is absent, omit the block from the PR body entirely (do not fabricate criteria; graceful omission is required).
+- **`### Out of scope`** — same extraction rule; omit if absent.
+
+For each `- [ ] …` line in the acceptance-criteria block, inspect `git diff origin/main...HEAD` to infer whether the criterion is satisfied:
+
+- Mark `[x]` if the diff contains files, symbols, or phrases that directly address the criterion.
+- Mark `[ ]` if the diff does not clearly address it. Append `(needs human verification)` only when genuinely uncertain.
+
+Get the files-changed summary:
+
+```bash
+git diff --stat origin/main...HEAD
+```
+
+Produce one descriptive line per file, e.g. `packages/ui/src/atoms/Button/Button.tsx (+8/-6) — added disabled-state token`.
+
+### 2b — Open the PR with a structured body
+
+The `implementer: …` and `reviewer: …` values in the footer below come from
+this pair's line in the branches list above — copy them verbatim, do not
+recompute or guess them. They are already resolved host-side, e.g.
+`implementer: claude-sonnet-5-5·low, reviewer: claude-opus-5-5·medium`.
+
+Use this template (omit any section whose source was missing in the issue):
+
+```markdown
+<1–3 sentence summary of what this PR does>
+
+Closes #<ID>
+
+### Acceptance criteria (from issue)
+
+<COPIED_CHECKLIST_WITH_INFERRED_CHECKMARKS>
+
+### Files changed
+
+<ONE_LINE_PER_FILE_FROM_DIFFSTAT>
+
+### Out of scope (deferred from issue)
+
+<COPIED_OUT_OF_SCOPE_SECTION>
+
+---
+
+🤖 Generated by Sandcastle — implementer: <IMPLEMENTER_FROM_BRANCH_LINE>, reviewer: <REVIEWER_FROM_BRANCH_LINE>
+```
+
+```bash
+gh pr create \
+  --base main \
+  --head <branch> \
+  --title "<type>(<scope>): <subject>" \
+  --body "$(cat <<'EOF'
+<populated body from template above>
+EOF
+)"
+```
+
+Rules:
+
+- Title **must** follow Conventional Commits: `<type>(<scope>): <subject>`.
+- Body **must** contain `Closes #<ID>` so GitHub auto-links the issue — on the `HAS_CONTENT` path only. Step 1b is what guarantees you are on it; the keyword auto-closes the issue on merge, so a PR that changes nothing must never carry it.
+- Capture the PR URL or number returned by `gh pr create` for use in later steps.
+
+---
+
+## Step 3 — Enable squash auto-merge
+
+First let GitHub finish computing the PR's mergeability. Right after
+`gh pr create` it reports `UNKNOWN`, and `--auto` then tries to _arm_
+auto-merge instead of merging. This repository allows auto-merge, so the
+arming takes. In one that does not (a private repository on a plan without
+rulesets, like climaa/mape-tournament) it is refused and the request is
+silently lost, which stranded two PRs there on 5 Oct 2026.
+
+```bash
+for i in $(seq 1 10); do
+  MERGE_STATE=$(gh pr view <PR_NUMBER> --json mergeStateStatus --jq '.mergeStateStatus')
+  [ "$MERGE_STATE" != "UNKNOWN" ] && break
+  sleep 3
+done
+gh pr merge <PR_NUMBER> --squash --auto
+```
+
+On a PR that is already `CLEAN`, this merges at once. On one whose checks are
+still running, it queues the merge for when they pass.
+
+---
+
+## Step 4 — Wait for the PR to merge, updating it when it falls behind
+
+`main` requires branches to be **up to date** before merging
+(`required_status_checks.strict: true`). Auto-merge waits for checks but never
+updates a stale branch, so every PR that was open when a sibling merged is now
+`BEHIND` and will sit there forever. Poll both the state and the merge state,
+and update the branch whenever it goes `BEHIND` — the checks re-run and
+auto-merge lands the PR on its own.
+
+Poll every 30 seconds, hard cap of 40 polls (≈ 20 minutes):
+
+```bash
+PR_STATE="OPEN"
+for i in $(seq 1 40); do
+  PR_STATE=$(gh pr view <PR_NUMBER> --json state --jq '.state')
+  if [ "$PR_STATE" = "MERGED" ] || [ "$PR_STATE" = "CLOSED" ]; then break; fi
+  MERGE_STATE=$(gh pr view <PR_NUMBER> --json mergeStateStatus --jq '.mergeStateStatus')
+  ARMED=$(gh pr view <PR_NUMBER> --json autoMergeRequest --jq '.autoMergeRequest != null')
+  echo "poll $i: state=$PR_STATE merge_state=$MERGE_STATE armed=$ARMED"
+  case "$MERGE_STATE" in
+    BEHIND) gh pr update-branch <PR_NUMBER> || echo "update-branch failed; retrying next poll" ;;
+    DIRTY) echo "PR <PR_NUMBER> has a real conflict — leaving it for a human"; break ;;
+    CLEAN|HAS_HOOKS|UNSTABLE)
+      if [ "$ARMED" = "false" ]; then
+        gh pr merge <PR_NUMBER> --squash --auto || echo "merge failed; retrying next poll"
+      fi ;;
+  esac
+  sleep 30
+done
+```
+
+- `BEHIND` → `gh pr update-branch`, then keep polling. Do **not** re-run
+  `gh pr merge --auto` unless the arming was actually lost; updating the branch
+  does not clear it.
+- `DIRTY` → a genuine conflict. **Do not resolve it, do not rebase, do not merge
+  `main` locally.** Break out of the poll loop and take the not-merged path in
+  Step 5. After you exit, the host-side queue resolves one kind of conflict
+  itself: a branch and `main` that both only added lines to `CHANGELOG.md`. It
+  merges `main` in, keeps both entries and pushes from the host through the
+  gate. Every other conflict, and any edited line even in `CHANGELOG.md`, stays
+  a human's.
+- `CLEAN` (or `HAS_HOOKS`, `UNSTABLE`) **with no auto-merge armed** → the
+  arming was lost, or never took (see Step 3). Nothing else will merge it, so
+  run `gh pr merge --squash --auto` again: on a mergeable PR it merges at once.
+  Once armed, a `CLEAN` PR is GitHub's to land; leave it.
+- Anything else (`BLOCKED`, `UNKNOWN`) → checks are still running or GitHub
+  has not computed mergeability yet. Keep polling; there is nothing to fix.
+
+The orchestrator runs the same reconciliation host-side after you finish
+(`sandcastle-pr-queue.mts`), so a PR you leave open and up to date still lands.
+That is a backstop, not a reason to skip this step: only you close the issue.
+
+---
+
+## Step 5 — Close or comment based on PR state
+
+- **`MERGED`** → tick the issue's acceptance criteria from the PR, post the closing comment, then close the issue:
+
+  ```bash
+  CLOSE_COMMENT=$(node .sandcastle/sandcastle-tick-criteria.mts <ID> <PR_NUMBER>) \
+    || CLOSE_COMMENT="Merged via PR <PR_URL>. Completed by Sandcastle. The acceptance criteria were not reconciled with the PR (the tick step failed), so the issue body is unchanged."
+  gh issue comment <ID> --body "$CLOSE_COMMENT"
+  gh issue close <ID> || echo "Issue #<ID> already closed (the PR's Closes #<ID>); continuing."
+  ```
+
+  The comment is posted on its own, before the close. The PR body's `Closes #<ID>` has usually closed the issue already, and `gh issue close --comment` on a closed issue skips the comment along with the close, which dropped the only list of the criteria left for a human. A close that fails because the issue is already closed is not an error.
+
+  The script runs on plain `node` (type stripping, no `tsx`), because this sandbox's `node_modules` is the host's. It ticks an issue box only when the merged PR's body ticks the same criterion. A criterion the PR left `[ ]`, or carried with `(needs human verification)`, stays `[ ]` in the issue with ` (needs human verification — #<PR>)` appended once, and the closing comment it prints lists it. Never tick the issue's boxes any other way: a box the PR left open is the one signal Step 2a asks for, and ticking it records as verified what nobody verified.
+
+- **`CLOSED`** (without merge) or **`OPEN`** (timeout reached) → leave a comment and do **not** close:
+  ```bash
+  gh issue comment <ID> --body "PR <PR_URL> was not merged (state: $PR_STATE). Requires manual review."
+  ```
+
+---
+
+## Step 6 — Delete the issue branch (MERGED only)
+
+```bash
+if [ "$PR_STATE" = "MERGED" ]; then
+  git push origin --delete <branch> || \
+    echo "Branch <branch> already deleted or push failed; continuing."
+fi
+```
+
+The `|| echo` fallback tolerates "already deleted" (e.g., a future `delete_branch_on_merge: true` flip or manual cleanup).
+
+---
+
+## Conflicted or unmergeable PR
+
+If `gh pr merge <PR_NUMBER> --squash --auto` (Step 3) fails, or the PR reports merge conflicts / is otherwise unmergeable, **do not improvise a local fix**:
+
+- Comment on the PR (or the issue) that it needs manual review, and leave it open. Do **not** close it.
+- Do **not** locally merge or rebase `main` into the branch to resolve conflicts.
+- **Never run a bare `pnpm install`.** This sandbox bind-mounts the host checkout at `/home/agent/workspace`; a full `pnpm install` rewrites the host's `node_modules` pnpm state and forces a from-scratch reinstall of every workspace project.
+- If a lockfile genuinely must be regenerated (e.g. a `pnpm-lock.yaml` conflict), use `pnpm install --lockfile-only` — it updates `pnpm-lock.yaml` without touching `node_modules`.
+
+Then move on to the next branch+issue pair.
+
+---
+
+Once you've processed every branch+issue pair, output `<promise>COMPLETE</promise>` on its own line as your **very last characters**. Do not write a summary, explanation, or any text after the token.

@@ -1,0 +1,53 @@
+{
+  "isSample": true,
+  "sets": [
+    {
+      "label": "main-2026-10-13",
+      "sha": "c013d86",
+      "branch": "main",
+      "capturedAt": "2026-10-13",
+      "stories": 172,
+      "note": "the committed __baselines__ corpus at this sha \u2014 the dialog fix, the footer's version mark and the twelve Pagination stories have all landed"
+    },
+    {
+      "label": "main-2026-09-17",
+      "sha": "a78c467",
+      "branch": "main",
+      "capturedAt": "2026-09-17",
+      "stories": 160,
+      "note": "the committed __baselines__ corpus at this sha, the last before the dialog fix \u2014 byte-for-byte the corpus at d9d8e96"
+    },
+    {
+      "label": "main-2026-08-30",
+      "sha": "d9d8e96",
+      "branch": "main",
+      "capturedAt": "2026-08-30",
+      "stories": 14,
+      "note": "a --filter slice of the committed __baselines__ corpus at this sha \u2014 the one set here that ships its shots, so a deployed console can open a set rather than only list one"
+    },
+    {
+      "label": "main-2026-08-24",
+      "sha": "0edf94f8c719c6645aeb0f27446ebe023d38b7c2",
+      "branch": "feat/local-accept-loop",
+      "capturedAt": "2026-08-24",
+      "stories": 154,
+      "note": "the corpus after the IconButton stories landed \u2014 side B of the added report"
+    },
+    {
+      "label": "main-2026-08-17",
+      "sha": "f2570e1",
+      "branch": "main",
+      "capturedAt": "2026-08-17",
+      "stories": 106,
+      "note": "the committed __baselines__ corpus as of this sha"
+    },
+    {
+      "label": "main-2026-08-13",
+      "sha": "e0427b4",
+      "branch": "main",
+      "capturedAt": "2026-08-13",
+      "stories": 106,
+      "note": "main's tip on 2026-08-13, the commit before #242 merged"
+    }
+  ]
+}

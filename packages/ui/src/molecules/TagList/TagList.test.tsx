@@ -1,0 +1,111 @@
+import { ABSENT_TAG, SKIP_TAG } from '@lab/visual-diff/policy';
+import { cleanup, render, screen } from '@testing-library/react';
+import type { AnchorHTMLAttributes } from 'react';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { TagList } from './TagList';
+import * as tagListStories from './TagList.stories';
+
+// `globals` is off in vitest.config.ts, so Testing Library registers no automatic
+// cleanup — without this every render stacks in the same document and the queries
+// below match the previous test's DOM.
+afterEach(cleanup);
+
+// Stands in for `next/link`, which packages/ui may not depend on (see Tag.tsx).
+function RouterLink(props: AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return <a data-routed="true" {...props} />;
+}
+
+describe('TagList', () => {
+  it('renders one link per tag inside a semantic list', () => {
+    render(<TagList tags={['testing', 'agents', 'ci']} />);
+
+    const list = screen.getByRole('list');
+    const items = screen.getAllByRole('listitem');
+    const links = screen.getAllByRole('link');
+
+    expect(list.tagName).toBe('UL');
+    expect(items).toHaveLength(3);
+    expect(links.map((link) => link.textContent)).toEqual(['testing', 'agents', 'ci']);
+  });
+
+  it('builds each href with a caller-supplied hrefFor', () => {
+    render(<TagList tags={['react']} hrefFor={(tag) => `/topics/${tag}`} />);
+
+    const link = screen.getByRole('link', { name: 'react' });
+
+    expect(link.getAttribute('href')).toBe('/topics/react');
+  });
+
+  it('percent-encodes each tag with the default href builder', () => {
+    render(<TagList tags={['next js']} />);
+
+    const link = screen.getByRole('link', { name: 'next js' });
+
+    expect(link.getAttribute('href')).toBe('/tags/next%20js');
+  });
+
+  // Edge case: an empty tags array must render nothing at all, not an empty <ul>.
+  it('renders nothing at all for an empty tags array', () => {
+    const { container } = render(<TagList tags={[]} />);
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('forwards `as` straight through to each Tag', () => {
+    render(<TagList tags={['react']} as={RouterLink} />);
+
+    const link = screen.getByRole('link', { name: 'react' });
+
+    expect(link.dataset.routed).toBe('true');
+  });
+
+  it('carries only the Stack and block classes when no className is supplied', () => {
+    render(<TagList tags={['react']} />);
+
+    const list = screen.getByRole('list');
+
+    // Exact, not `toContain`: an omitted `className` must be filtered out rather
+    // than joined in as a trailing empty or `undefined` class.
+    expect(list.className).toBe('ds-stack ds-tag-list');
+  });
+
+  it('appends a caller-supplied className', () => {
+    render(<TagList tags={['react']} className="u-mt-2" />);
+
+    const list = screen.getByRole('list');
+
+    expect(list.className).toBe('ds-stack ds-tag-list u-mt-2');
+  });
+});
+
+/**
+ * Every export in a story module that carries `tag`, by name.
+ *
+ * `default` is included deliberately: Storybook merges a meta's tags into every
+ * story it holds, so a skip written there would take the whole file out of the
+ * gate while each named export still reported none of its own.
+ */
+const storiesTagged = (
+  module: Record<string, { tags?: readonly string[] }>,
+  tag: string,
+) =>
+  Object.entries(module)
+    .filter(([, story]) => story?.tags?.includes(tag))
+    .map(([name]) => name)
+    .sort();
+
+describe('the capture contract', () => {
+  it('skips no story in the file', () => {
+    // Exact, over every export: the corpus-wide pin in src/__tests__ keys on the
+    // file, so it cannot see a skip added here. `Empty` renders `null` and is shot
+    // inside an absence frame instead of skipped.
+    expect(storiesTagged(tagListStories, SKIP_TAG)).toEqual([]);
+  });
+
+  it('declares the absence-framed story, and only it, as drawing nothing', () => {
+    // The tag lets its empty token ledger stand as the answer instead of a warning;
+    // on a story that draws, it would hide a walk that looked in the wrong place.
+    expect(storiesTagged(tagListStories, ABSENT_TAG)).toEqual(['Empty']);
+  });
+});

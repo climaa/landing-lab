@@ -1,0 +1,425 @@
+# The gate, thin form. Wave 3 added an `e2e` job to `gate.needs` — no
+# branch-protection edit ever needed again: `gate` is the only required check.
+#
+# `visual-diff` (below) is deliberately NOT in that list. Per
+# apps/blog/content/posts/visual-regression-with-agents.mdx: a numeric pixel
+# threshold stops being a safety net once change volume is high (an agent
+# refactoring thirty components in an afternoon), and "approving a baseline
+# has to cost the same as reviewing a code diff" — i.e. a person, in the PR,
+# not a required check nobody reads before merging. The job still runs, still
+# fails loudly (a real ❌ in the checks list) on a real diff, and still posts
+# the report as a PR comment — it just never blocks a merge on its own.
+name: pr
+
+on:
+  pull_request:
+    branches: [main]
+    # `ready_for_review` is load-bearing, not decorative. Every job below is
+    # skipped while the PR is a draft, and GitHub counts a skipped required
+    # check as PASSING. Without this event the draft's skipped-therefore-green
+    # `gate` would still be standing when the PR is marked ready, and it would
+    # be mergeable having never run a check. Never remove it while the draft
+    # guard on the jobs exists — the two are a matched pair.
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+# Least privilege: every job executes package scripts from the PR head
+# (agent-authored branches are the main traffic on a public repo).
+permissions:
+  contents: read
+
+# Superseded PR runs are pure waste under strict up-to-date protection —
+# cancel them. Push-to-main runs are never cancelled (they seed the caches).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # CI and the Sandcastle sandboxes share one remote cache. TURBO_TOKEN is an
+  # Actions secret, TURBO_TEAM a repo variable (configured with the cache link).
+  # Dependabot-triggered runs see neither and simply build cold — accepted.
+  # Known trade-off (documented in the plan): the token is write-capable and
+  # visible to PR-head code on same-repo branches; acceptable while every
+  # issue body is maintainer-authored. Revisit (signature key or read-only
+  # PR token) if dispatch ever loosens.
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  # /changelog is built from a network fetch, and a build is the one place a
+  # test cannot reach past: the e2e lane starts an already-built app, and the
+  # vitest alias that stubs next/cache never runs during `next build`. So the
+  # stub is the build's own — apps/blog/fixtures/releases.ts — and it is set
+  # here, workflow-wide, because every job that builds the blog must be covered,
+  # not just the one named `build`. Vercel leaves it unset and fetches for real.
+  # Declared in turbo.json's build.env, so it reaches next build and so a fixture
+  # build and a real one never share a cache entry.
+  BLOG_RELEASES_FIXTURE: '1'
+
+# Draft PRs do not run the gate. GitHub has no draft filter at the `on:` level
+# — a draft fires opened/synchronize like any other PR — so the guard has to sit
+# on every job, and it has to sit on `gate` too: skip the workers alone and
+# `gate` (if: always()) would see those skips and fail the draft red.
+#
+# The `event_name` half is not redundant. On push-to-main there is no
+# `github.event.pull_request`, and leaning on GitHub's null-to-false coercion to
+# carry that case is a silent footgun. Say it out loud instead.
+#
+# Repeated per job because GitHub Actions does not support YAML anchors. The
+# `checks` matrix below shares the seven per-command jobs' steps, but a matrix
+# cannot share this guard line, so all five jobs (checks, sandcastle, e2e,
+# visual-diff, gate) still carry their own copy. A new job added in a later
+# wave needs this line too — and, unless it's meant to stay informational like
+# `visual-diff`, an entry in `gate.needs`.
+#
+# On the action pins below: `cache: pnpm` is set explicitly and must stay that
+# way. setup-node v5 started auto-enabling the cache whenever package.json has a
+# `packageManager` field (this repo pins pnpm there), then v6 narrowed that
+# auto-detection to npm only. Naming the package manager outright means neither
+# swing reaches us. The `corepack enable` step also has to stay ahead of
+# setup-node — `cache: pnpm` resolves the pnpm store path at key-computation
+# time, so pnpm must already be on PATH.
+jobs:
+  checks:
+    # lint/typecheck/build/test/format/health/boards collapsed into one matrix — they
+    # were byte-identical but for the final `run:` line (GitHub Actions has no
+    # YAML anchors to share that block with instead).
+    #
+    # NEVER put an `if:` on a matrix leg. Matrix aggregation ignores skipped
+    # legs entirely — [success, skipped] reduces to success — so a per-leg
+    # guard would silently defeat the draft check: a future "skip health on
+    # docs-only PRs" would produce a green `checks` containing a leg that
+    # never ran, and `gate` (which treats skipped as failure) could not see
+    # it. The job-level guard below is the only guard, on purpose.
+    #
+    # fail-fast: false is load-bearing. The default cancels the surviving legs
+    # on the first failure; the run goes red either way (gate counts cancelled
+    # as failure too), but losing those six results defeats the whole reason
+    # seven checks exist.
+    #
+    # name: ${{ matrix.name }} keeps the check names byte-identical to the
+    # pre-matrix jobs (lint, typecheck, …). Without it each leg renders as
+    # "checks (lint, pnpm turbo run lint)", joining every include value.
+    # Nothing about branch protection changes — gate is still the only
+    # required check regardless of how the legs are named.
+    name: ${{ matrix.name }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    # 20, not 15: one timeout now covers both format (~1 minute) and a
+    # cold-cache build, and a cold cache happens on every Dependabot PR by
+    # design (those runs never see TURBO_TOKEN, above). A ceiling to tighten
+    # later from measured p95, not a target.
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: lint, run: pnpm turbo run lint }
+          - { name: typecheck, run: pnpm turbo run typecheck }
+          - { name: build, run: pnpm turbo run build }
+          - { name: test, run: pnpm turbo run test }
+          # Prettier is the formatter of record for the whole repo, including
+          # .sandcastle/*.mts (added to the glob so the orchestrator is held to
+          # the same printWidth as everything else). `--check` fails on drift.
+          - { name: format, run: pnpm format:check }
+          # Cognitive-complexity ceiling — COGNITIVE, not cyclomatic (cyclomatic
+          # over-counts flat guard sequences); see scripts/complexity-gate.mjs.
+          # `pnpm health:check` = `turbo run health` (per-workspace,
+          # cached/parallel — unchanged apps hit the shared turbo remote cache)
+          # + a standalone .sandcastle/ check (orchestrator scripts, not a turbo
+          # workspace).
+          - { name: health, run: pnpm health:check }
+          # Every planned story has its tile, every board PNG its scale; needs the
+          # Storybook build, so it is a turbo root task (designs/STANDARD.md).
+          - { name: boards, run: pnpm turbo run boards:check }
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: ${{ matrix.run }}
+
+  sandcastle:
+    # The orchestrator's own hermetic suite: prompt contracts, merge flow,
+    # model-override grammar. Agents edit prompts; this is what catches them.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # `turbo run typecheck` only reaches workspaces, and .sandcastle/ is not
+      # one — so 2.5k LOC of orchestrator had no type gate at all until this
+      # step. Runs before the suite: a type error should not be reported as a
+      # test failure.
+      - run: pnpm typecheck:sandcastle
+      - run: pnpm test:sandcastle
+
+  e2e:
+    # The acceptance suite (apps/e2e): Gherkin scenarios compiled by playwright-bdd,
+    # run against `next start` on the BUILT blog and, on three seeded data
+    # directories, the BUILT visual-diff console. In gate.needs, unlike visual-diff —
+    # this one has no baselines to approve, so a red is a binary claim about product
+    # behavior rather than a judgment call about pixels.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    # Same ceiling as `checks`, and for the same reason: the worst case is a cold
+    # Turbo cache paying for @lab/blog#build and @lab/visual-diff-ui#build before
+    # a single scenario starts, which is every Dependabot run by design. Not
+    # visual-diff's 30 — most of that budget is the container image pull this job
+    # deliberately does not do. Must stay strictly ABOVE playwright.config.ts's
+    # globalTimeout (15m, set by #226), or a wedged run is killed by the job
+    # before it can flush its report.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Deliberately NOT the mcr.microsoft.com/playwright container visual-diff runs
+      # in. That container exists to freeze the exact Chromium the pixel baselines
+      # were recorded against — __baselines__/BASELINE_ENV.json pins the image tag AND
+      # the chromium revision, and a mismatch is a mass rebaseline. This suite compares
+      # roles, text and axe results, so it has no such coupling, and adopting the
+      # container would buy a SECOND hand-maintained version string that can drift from
+      # the exact @playwright/test pin in apps/e2e/package.json. `playwright install`
+      # derives the browser from that pin, so there is nothing to keep in sync.
+      #
+      # Staying out of a container also keeps upload-artifact working on plain
+      # directory paths — which, as the tar workaround in visual-diff below documents,
+      # it demonstrably does not do from inside one.
+      - name: Restore the Chromium download
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          # Keyed on apps/e2e/package.json, not pnpm-lock.yaml: the lockfile moves on
+          # every bump anywhere in the monorepo, so a key built from it would miss on
+          # every weekly bump PR — the runs that already build cold — for no benefit.
+          # Correctness comes from the exact @playwright/test pin living in this file:
+          # the browser cannot change without the key changing. The reverse does not
+          # hold — Dependabot edits manifests, not just the lockfile, so a weekly bump
+          # of this workspace's other devDependencies moves the key too and costs one
+          # redundant download.
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/e2e/package.json') }}
+      # NO --with-deps, and that is the whole change here. It used to run whether or
+      # not the cache hit, on the reasoning that the cache carries the browser while
+      # apt carries the system libraries it dynamically links. The first half is still
+      # true; the second was never measured.
+      #
+      # Measured: the cache restore HITS in ~3 s and the install step still cost ~18 s,
+      # because `--with-deps` shells out to apt-get every run and that half is
+      # uncacheable as written.
+      #
+      # The HYPOTHESIS this run tests is that `ubuntu-24.04-arm` already ships the
+      # shared libraries Chromium links, making that apt pass ~18 s of re-proving what
+      # the image provides — on the one job that sets the gate's latency, every run.
+      # Nobody had checked. A green `e2e` here is the check.
+      #
+      # This is an experiment with a loud failure and a one-word revert. If a future
+      # runner image drops those libraries, Chromium fails to launch and `e2e` goes red
+      # with a linker error naming the missing .so — put `--with-deps` back. It cannot
+      # fail quietly: a browser that will not start takes the whole suite with it.
+      #
+      # `nightly-determinism.yml` is deliberately untouched, so the two are not changed
+      # together. It is off the critical path and now acts as the control.
+      - run: pnpm --filter @lab/e2e exec playwright install chromium
+      # `turbo run e2e`, not `pnpm --filter @lab/e2e test:e2e`: the task dependsOn
+      # @lab/blog#build and @lab/visual-diff-ui#build, so what the suite boots is
+      # what the build produced rather than whatever .next was lying around. Same
+      # convention as every other job here — build what you need yourself, hit the
+      # shared remote cache if `build` already primed it. CI=true is set by
+      # Actions, which is what turns on the config's retries, failOnFlakyTests,
+      # forbidOnly and list reporter (#226) and disables reuseExistingServer.
+      - run: pnpm turbo run e2e
+      # always(), not failure(): failure() would already cover the flake case, since
+      # failOnFlakyTests reds a run that passed only on a retry and the failed
+      # attempt's trace (trace: 'retain-on-failure') rides along with it. What
+      # failure() drops is the green run's report — the only record of which
+      # scenarios actually ran, and what you compare against when a later run
+      # disagrees. Directory paths and no tar — this job is not in a container.
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            apps/e2e/playwright-report
+            apps/e2e/test-results
+          retention-days: 14
+
+  visual-diff:
+    # Not in gate.needs — see the file header. Runs on the pinned
+    # arm64 + Playwright container `packages/visual-diff/src/policy.mjs`'s
+    # `HOST` names, because `commands.mjs`'s `probeHost()` reports the real
+    # `process.arch`, and the committed `__baselines__/BASELINE_ENV.json`
+    # records `arch: "arm64"` — an amd64 runner would trip the host guard
+    # (exit 2) on every run before a single pixel is compared.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    container: mcr.microsoft.com/playwright:v1.62.1-noble
+    # One source for how long the report lives: the upload step configures it and the
+    # comment's copy quotes it, and a drift between the two is a comment that lies about
+    # a link it just handed the reader.
+    env:
+      REPORT_RETENTION_DAYS: 14
+    permissions:
+      contents: read
+      # Scoped to this job only — posts/updates the sticky report comment.
+      # On a fork PR, `pull_request` hands every job a read-only token
+      # regardless of this block, so the comment step below silently finds
+      # nothing to post with; the run and the uploaded artifact still happen.
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # No download-artifact handoff from the parallel `build` job — every
+      # job in this file builds what it needs itself. This one hits the
+      # shared Turbo remote cache if `build` already primed it, and just
+      # builds locally like `health`/`sandcastle` do if not.
+      - run: pnpm turbo run build --filter=@lab/storybook
+      - name: Run visual-diff
+        id: visual-diff
+        run: pnpm visual-diff
+        # Exit 1 (a human must look) and exit 2 (broken) both mean "let the
+        # comment/upload steps below still run" — only the explicit failing
+        # step at the end turns that into the job's real, visible result.
+        continue-on-error: true
+      # actions/upload-artifact@v7 cannot see files written inside this job's
+      # `container:` when given a directory path — confirmed twice: a debug
+      # step proved the files exist at exactly this path, with and without a
+      # trailing slash, and upload-artifact reported "no files" both times
+      # regardless. tar first (a plain `run:` step, proven to see the
+      # container's filesystem) and upload the one resulting file instead —
+      # a single explicit path sidesteps whatever upload-artifact's directory
+      # traversal is failing to do here.
+      - name: Archive the report
+        if: always()
+        run: tar -C packages/visual-diff/.visual-diff -czf /tmp/visual-diff-report.tar.gz .
+      # ORDERING CONTRACT: this step must stay AHEAD of "Post report comment".
+      # The comment links `steps.report-artifact.outputs.artifact-url`, which does
+      # not exist until the upload has run; move the comment back above this and
+      # the link silently degrades to the run URL on every PR, forever, with
+      # nothing red to notice it. Nothing in this repo validates workflow YAML or
+      # step order — there is no actionlint, no yamllint, and `.yml` is not in
+      # `format:check`'s glob — so this comment is the only guard there is.
+      - uses: actions/upload-artifact@v7
+        id: report-artifact
+        if: always()
+        with:
+          name: visual-diff-report
+          path: /tmp/visual-diff-report.tar.gz
+          retention-days: ${{ env.REPORT_RETENTION_DAYS }}
+      - name: Post report comment
+        # Only meaningful on a PR — push-to-main has no PR to comment on.
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        # Through env, not `${{ }}` into the script source — the house rule
+        # accept-baselines.yml states. Empty string when the upload found no
+        # files (`if-no-files-found` defaults to `warn`, so the step still
+        # succeeds), which is what the `|| runUrl` fallback below is for.
+        env:
+          ARTIFACT_URL: ${{ steps.report-artifact.outputs.artifact-url }}
+          RETENTION_DAYS: ${{ env.REPORT_RETENTION_DAYS }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- visual-diff-report -->';
+            const summaryPath = 'packages/visual-diff/.visual-diff/summary.md';
+            const summary = fs.existsSync(summaryPath)
+              ? fs.readFileSync(summaryPath, 'utf8')
+              : 'visual-diff did not produce a summary — the run itself is broken (see the job log).';
+
+            // The footer's logic lives in a module beside the renderer, not in this
+            // string: logic in YAML is logic nothing can test. Imported by path because
+            // github-script has no view of the workspace's package graph — the relative
+            // `summaryPath` read above proves the cwd this resolves against.
+            const links = await import(
+              `${process.cwd()}/packages/visual-diff/src/comment-links.mjs`
+            );
+
+            const base = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}`;
+            const pr = context.payload.pull_request;
+            const footer = links.renderCommentFooter({
+              // Read the rendered body, not `steps.visual-diff.outcome`, which is
+              // `failure` for a real diff (exit 1) AND a broken run (exit 2) alike.
+              remediated: summary.includes('### To fix'),
+              summarised: fs.existsSync(summaryPath),
+              runUrl: `${base}/actions/runs/${context.runId}`,
+              artifactUrl: process.env.ARTIFACT_URL,
+              workflowUrl: `${base}/actions/workflows/accept-baselines.yml`,
+              branch: pr.head.ref,
+              // `head.repo` is null when the head fork has been deleted with the PR
+              // still open. A head repo that no longer exists is not this repo, so the
+              // dispatch link drops — what a live fork would have got anyway.
+              sameRepo: pr.head.repo?.full_name === context.payload.repository.full_name,
+              retentionDays: Number(process.env.RETENTION_DAYS),
+            });
+            const body = links.renderCommentBody(marker, summary, footer);
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      - name: Fail the job if visual-diff found something
+        # The real signal: a visible, non-required ❌ in the PR checks list.
+        # Never added to gate.needs — see the file header.
+        if: steps.visual-diff.outcome == 'failure'
+        run: exit 1
+
+  gate:
+    # The aggregator — the ONLY required status check. `if: always()` so it
+    # reports even when a needed job fails; it fails unless every result is
+    # exactly 'success' (skipped/cancelled count as failure).
+    #
+    # needs.checks.result is a single aggregate over the seven matrix legs: any
+    # leg failure -> failure, any leg cancelled -> cancelled, draft PR (the
+    # job-level guard skips the whole job) -> skipped. The one thing lost
+    # versus seven separate jobs: the failure echo below no longer names which
+    # leg failed — the checks list still does, the log line just doesn't
+    # repeat it.
+    needs: [checks, sandcastle, e2e]
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 2
+    steps:
+      - name: Fail unless every needed job succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: |
+          echo "needs results: ${{ toJSON(needs.*.result) }}"
+          exit 1
+      - name: All checks green
+        run: echo "gate green — every needed job succeeded"

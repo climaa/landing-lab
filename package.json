@@ -1,0 +1,44 @@
+{
+  "name": "landing-lab",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.20.0+sha512.9a6f330a95b66446ea088faf1521405a8a01f07fde7124cc9958dfed52d4bb436737e65b08f85f37b46fcba375092558ac51262b816844b22f63406ed166bfee",
+  "engines": {
+    "node": ">=22.22.2 <23.0.0"
+  },
+  "scripts": {
+    "dev": "dotenv run -q --override -- turbo run dev",
+    "build": "dotenv run -q --override -- turbo run build",
+    "lint": "dotenv run -q --override -- turbo run lint",
+    "typecheck": "dotenv run -q --override -- turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write --ignore-path .gitignore --ignore-path .prettierignore --ignore-path \"$(git rev-parse --git-path info/exclude)\" \"**/*.{ts,mts,tsx,mjs,cjs,js,md,mdx,json,css}\"",
+    "format:check": "prettier --check --ignore-path .gitignore --ignore-path .prettierignore --ignore-path \"$(git rev-parse --git-path info/exclude)\" \"**/*.{ts,mts,tsx,mjs,cjs,js,md,mdx,json,css}\"",
+    "test": "dotenv run -q --override -- turbo run test",
+    "e2e:ui": "dotenv run -q --override -- turbo run build --filter=@lab/visual-diff-ui && pnpm --filter @lab/e2e e2e:ui",
+    "e2e:ui:local": "pnpm --filter @lab/e2e e2e:ui:local",
+    "test:local": "pnpm --filter @lab/e2e test:local",
+    "sandcastle": "tsx .sandcastle/main.mts",
+    "visual-diff": "node packages/visual-diff/src/cli.mjs check",
+    "visual-diff:accept": "node scripts/visual-diff-container.mjs accept",
+    "visual-diff:container": "node scripts/visual-diff-container.mjs",
+    "typecheck:sandcastle": "tsc --noEmit -p .sandcastle/tsconfig.json",
+    "test:sandcastle": "vitest run --config vitest.sandcastle.config.mts",
+    "gate": "node scripts/gate/run.mjs",
+    "prepare": "husky",
+    "boards:check": "node scripts/board-scale-integrity.mjs",
+    "health:check": "turbo run health && node scripts/complexity-gate.mjs --scope .sandcastle/ && node scripts/complexity-gate.mjs --scope .claude/skills/pixel-perfect-session/ && node scripts/index-integrity.mjs && node scripts/vitest-control-scan.mjs && node scripts/vitest-timeout-scan.mjs && node scripts/release-age.mjs"
+  },
+  "devDependencies": {
+    "@ai-hero/sandcastle": "0.12.0",
+    "@types/node": "^22.20.5",
+    "dotenv": "^18.0.9",
+    "fallow": "3.36.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.10",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

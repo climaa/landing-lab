@@ -1,0 +1,82 @@
+# The format scripts pass this file, .gitignore and .git/info/exclude as ignore paths, so
+# anything git ignores on one machine only is not formatted either: a checkout's private
+# notes cannot fail the gate's format step. A missing ignore file is skipped, which is
+# what a linked worktree, whose .git is a file, gets.
+
+node_modules
+.next
+dist
+.turbo
+pnpm-lock.yaml
+
+# `storybook build` output: a bundled site whose .json and .css this glob would
+# otherwise reach. Prettier does not read .gitignore, so it is named twice.
+storybook-static/
+
+# Prettier 3.x rewrites MDX `{/* ... */}` comments as `{/_ ... _/}`, which is not a
+# valid JS expression and breaks the MDX compile at build time. `.md` is listed too:
+# `lib/posts.ts` reads either extension, drafting a post in Obsidian produces `.md`,
+# and post prose is not Prettier's business whichever suffix it lands under.
+apps/blog/content/**/*.mdx
+apps/blog/content/**/*.md
+
+# Vendored third-party skills, copied unmodified from vercel/next.js at a pinned
+# commit. PROVENANCE.md records a SHA-256 per file, so reformatting them would
+# invalidate every checksum and break the "copied unmodified" claim they rest on.
+# pixel-perfect-session is this repository's own, so it is formatted like any
+# other source: un-ignored by name, which a vendored skill added later is not.
+.claude/skills/*
+!.claude/skills/pixel-perfect-session/
+
+# Playwright's run artifacts, both the acceptance pair and the -local pair the
+# real-data lane writes. Gitignored via apps/e2e/.gitignore, but Prettier does
+# not read .gitignore, so a local run leaves files this glob would flag — the
+# report's own trace-viewer .css among them.
+apps/e2e/test-results*/
+apps/e2e/playwright-report*/
+
+# Committed font payload: the binaries, their OFL texts and the OG provenance
+# record. The only file here `format`'s glob reaches is `og/PROVENANCE.md`, whose
+# checksum table it would reflow — but an editor's format-on-save reads this file
+# too, and a licence must travel byte-for-byte with the fonts it covers.
+packages/ui/src/fonts/
+
+# Generated, marked "should not be edited", and now gitignored — but Prettier does
+# not read .gitignore, and `format:check`'s glob reaches every .ts on disk whether
+# git tracks it or not. Next 16 emits `import "./.next/types/routes.d.ts";` with
+# double quotes, which our single-quote config rewrites and the next command
+# rewrites straight back, so a local run would fail the check on a file nobody
+# committed. Named by path rather than as a bare `next-env.d.ts` pattern: these
+# are the two that exist, and a future one should have to say so here.
+apps/blog/next-env.d.ts
+apps/visual-diff-ui/next-env.d.ts
+
+# `bddgen` output: playwright-bdd compiles every .feature into a .spec.js here on
+# each e2e run. Gitignored via apps/e2e/.gitignore, but Prettier does not read
+# .gitignore — and once the format glob learned .js, a local run left generated
+# files for `format:check` to fail on.
+#
+# Both lanes, because both generate. The local lane's directory was missed when
+# the acceptance one was added: it never fires in CI — `playwright.local.config.ts`
+# refuses under `CI`, so nothing there ever writes it — which is exactly why it
+# went unnoticed, and why it failed `format:check` only on the machine of whoever
+# had last run `pnpm test:local`.
+apps/e2e/.features-gen/
+apps/e2e/.features-gen-local/
+
+# Token ledger reports in the console's sample fixtures: serializeLedgerReport's own
+# bytes, so regenerating them by fixtures/README.md reproduces the committed files
+# exactly. Reformatted, every regeneration would be a diff.
+apps/visual-diff-ui/fixtures/reports/*/ledger/
+apps/visual-diff-ui/fixtures/sets/*/*.ledger.json
+
+# The e2e worlds: a copy of those fixtures, plus the overlay, that each run seeds
+# before its servers boot. Gitignored via apps/e2e/.gitignore, but Prettier does
+# not read .gitignore, so a local e2e run left the copied ledgers above for this
+# glob to flag.
+apps/e2e/.worlds/
+
+# Board tile maps: scripts/pen/finish-export.mjs's own bytes, one tile to a line so
+# a re-export diffs by the tiles that moved. Prettier would wrap the long keys'
+# arrays over three lines and turn every regeneration into a diff.
+designs/exports/*.tiles.json

@@ -1,0 +1,182 @@
+import NextLink from 'next/link';
+import { Badge, Stack, Text } from '@lab/ui';
+import type { CanonicalSet } from '@/lib/baselines';
+import { UNKNOWN, formatBytes, shortSha } from '@/lib/outcome';
+import { filterCounts, type SetShots, sectionFilterCounts } from '@/lib/set-view';
+import type { CaptureSet } from '@/lib/summary';
+import { Field } from './Field';
+import { DEFAULT_SEGMENT, type SetFilter } from '@/lib/set-filter';
+import { Filtered, SetFilterBar } from './SetFilterBar';
+
+const UNFILTERED: SetFilter = { theme: DEFAULT_SEGMENT, viewport: DEFAULT_SEGMENT };
+import { Note } from './Note';
+import { StoryScreenshots } from './StoryScreenshots';
+
+/**
+ * One screenshot set, read.
+ *
+ * Synchronous and props-only, like the two templates beside it: the page above
+ * resolves the data directory and awaits the readers, so every branch here can
+ * be rendered from literal rows without a filesystem.
+ *
+ * Nothing on this page mutates. There is no delete, no prune, no accept — the
+ * only control is the way back — so `frozen` never reaches it and a deployed or
+ * sample console renders exactly what a local one does.
+ */
+
+/** A `<div role="region">`, for the reasons components/ReportTemplate.tsx sets out
+ *  at length: not `banner`, which would be a second top-level banner beside the
+ *  shell's `SiteHeader`; not `<header role="region">`, a role axe's
+ *  `aria-allowed-role` refuses on that element; and not a `<section>`, which the
+ *  report's page object reads as a result section. */
+const HEADER_LABEL = 'set';
+
+/** The corpus's provenance: the commit that accepted it, and the host that drew
+ *  it. The stamp is the whole reason this page answers "what did the container
+ *  render" — local Storybook shows the component as THIS machine's font stack
+ *  draws it, and the screenshot is what the pinned image drew instead. */
+function CorpusFacts({ corpus, shots }: { corpus: CanonicalSet; shots: SetShots }) {
+  return (
+    <Stack gap={2}>
+      <Stack direction="row" gap={4} align="center" wrap className="vd-set__facts">
+        <Field label="accepted" value={shortSha(corpus.sha)} />
+        <Field label="date" value={corpus.acceptedAt ?? UNKNOWN} />
+        <Field label="screenshots" value={String(shots.shots)} />
+        <Field label="size" value={formatBytes(shots.bytes)} />
+      </Stack>
+
+      {shots.env && (
+        <dl className="vd-set__env">
+          {Object.entries(shots.env).map(([key, value]) => (
+            <div className="vd-set__env-pair" key={key}>
+              <dt className="vd-set__env-key">{key}</dt>
+              <dd className="vd-mono vd-set__env-value">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </Stack>
+  );
+}
+
+/** A captured set's provenance, which is a different claim from the corpus's and
+ *  says so. `sets.json` records the checkout a capture came from; it records no
+ *  host at all, so the container stamp above has no counterpart here and this
+ *  page does not invent one. */
+function CaptureFacts({ set, shots }: { set: CaptureSet; shots: SetShots }) {
+  return (
+    <Stack gap={2}>
+      <Stack direction="row" gap={4} align="center" wrap className="vd-set__facts">
+        <Field label="sha" value={shortSha(set.sha)} />
+        <Field label="branch" value={set.branch} />
+        <Field label="captured" value={set.capturedAt} />
+        <Field label="screenshots" value={String(shots.shots)} />
+        <Field label="size" value={formatBytes(shots.bytes)} />
+      </Stack>
+
+      <Note name="capture provenance">
+        a capture set records the checkout it came from, not the host it ran on — only the
+        committed corpus carries the container stamp its shots were drawn with
+      </Note>
+    </Stack>
+  );
+}
+
+export interface SetTemplateProps {
+  shots: SetShots;
+  /** The corpus row, when this set is the corpus and there is a checkout to read
+   *  one from. Null for a capture set. */
+  corpus: CanonicalSet | null;
+  /** The registry row, when the set is one this instance captured. */
+  set: CaptureSet | null;
+  /** What the link asked to see. Everything, when it asked for nothing. */
+  filter?: SetFilter;
+}
+
+export function SetTemplate({
+  shots,
+  corpus,
+  set,
+  filter = UNFILTERED,
+}: SetTemplateProps) {
+  // Once, not per tier: the same nine numbers feed the bar's jump links and every
+  // tier heading below.
+  const perSection = sectionFilterCounts(shots.sections);
+
+  return (
+    // What every filter rule in set.css hangs off: the bar's radios are inside
+    // this subtree, so `:has()` can read a checked one from here.
+    <Stack className="vd-set-view" gap={5}>
+      <div role="region" aria-label={HEADER_LABEL} className="vd-set__header">
+        <Stack gap={3}>
+          <Stack direction="row" gap={3} align="center" wrap>
+            <NextLink className="vd-set__back vd-mono" href="/">
+              ← console
+            </NextLink>
+            {/* Mono for the reason the report id is; `title` because the label
+                is cut with an ellipsis and would otherwise be unreadable whole. */}
+            <Text
+              variant="heading-2"
+              as="h1"
+              className="vd-set__label vd-mono"
+              title={shots.label}
+            >
+              {shots.label}
+            </Text>
+            {shots.isCanonical && <Badge tone="success">canonical</Badge>}
+          </Stack>
+
+          {corpus && <CorpusFacts corpus={corpus} shots={shots} />}
+          {!corpus && set && <CaptureFacts set={set} shots={shots} />}
+
+          {shots.ignored.length > 0 && (
+            <Note name="unreadable files">
+              {shots.ignored.length} file(s) in this set name no cell of the capture
+              matrix and are not shown: {shots.ignored.join(', ')}
+            </Note>
+          )}
+        </Stack>
+      </div>
+
+      {/* A SIBLING of the header, not a child of it: `position: sticky` is
+          clipped by its own parent's box, so a bar inside a header that scrolls
+          away goes with it. */}
+      <SetFilterBar
+        counts={filterCounts(shots.sections)}
+        perSection={perSection}
+        sections={shots.sections}
+        filter={filter}
+      />
+
+      {shots.sections.map(({ section, groups }) => (
+        <section aria-labelledby={section.anchor} className="vd-tier" key={section.key}>
+          <Stack gap={3}>
+            <Text
+              variant="heading-3"
+              as="h2"
+              className="vd-tier__title"
+              id={section.anchor}
+            >
+              {section.label}{' '}
+              <span className="vd-count vd-mono">
+                {/* Follows the filter for the reason the bar's count does: a
+                    heading claiming 37 stories over three of them is the page
+                    contradicting itself. */}
+                <Filtered
+                  counts={perSection[section.key]}
+                  render={(count) =>
+                    `${count.stories} stories · ${count.shots} screenshots`
+                  }
+                />
+              </span>
+            </Text>
+
+            {groups.map((group) => (
+              <StoryScreenshots group={group} key={group.key} label={shots.label} />
+            ))}
+          </Stack>
+        </section>
+      ))}
+    </Stack>
+  );
+}

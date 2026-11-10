@@ -1,0 +1,169 @@
+'use client';
+
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { Button, Stack, Text } from '@lab/ui';
+import { useCompareStart } from './CompareStart';
+import { Note } from './Note';
+
+/**
+ * Pick two capture sets and ask for the comparison — the console's one client
+ * island, and the whole of the compare pre-fill seam.
+ *
+ * **The URL is the seam.** Clicking `compare A ⇄ B` writes
+ * `?a=<label>&b=<label>&mode=compare` and nothing else: no store, no context, no
+ * fetch. The run panel reads the same three params back with
+ * `useSearchParams()`, selects its compare tab and fills its two fields. That
+ * choice buys three things a shared store would not — the request is shareable,
+ * the server never sees it, and the prerendered shell stays cacheable because
+ * only client islands read the query string.
+ *
+ * The pickers read `?a` and `?b` too, once, to start where a shared link
+ * points. Without it a link to a pair showed that pair in the run panel and
+ * the console's own default pair here, one screen naming two comparisons.
+ *
+ * `router.replace`, not `push`: choosing a different pair is a correction to
+ * where the reviewer already is, not a step back through.
+ *
+ * **The start is not in the URL.** On a console that can start jobs the press
+ * also starts the comparison (Board F2), and that half travels through
+ * CompareStart.tsx instead: a reload or a shared link replays the query string,
+ * and must only ever pre-fill.
+ */
+
+const COMPARE_MODE = 'compare';
+
+export interface ComparePickersProps {
+  /** Set labels, newest first. Also the option text — the acceptance scenario
+   *  chooses a set by the label it reads, so nothing else may be shown here. */
+  labels: readonly string[];
+  /** Whether the press also starts the comparison. False on a sample or a
+   *  deployed console, where `POST /api/jobs` refuses every start: there the
+   *  press pre-fills and nothing else, because comparing is reading and the
+   *  pickers stay for it. */
+  canStart: boolean;
+}
+
+interface PickerProps {
+  name: string;
+  value: string;
+  labels: readonly string[];
+  onChange: (label: string) => void;
+}
+
+/** A `<select>` whose accessible name is `A` or `B`, per the pinned contract.
+ *  The explicit `background-color`/`color` the design constraints ask for are in
+ *  globals.css: a native select otherwise takes the UA's palette and a dark
+ *  console gets a light dropdown. */
+function Picker({ name, value, labels, onChange }: PickerProps) {
+  const id = `vd-compare-${name.toLowerCase()}`;
+
+  return (
+    <Stack direction="row" gap={2} align="center" className="vd-picker">
+      <Text variant="label" as="label" className="vd-picker__label" htmlFor={id}>
+        {name}
+      </Text>
+      <select
+        id={id}
+        className="vd-picker__select"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {labels.map((label) => (
+          <option key={label} value={label}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </Stack>
+  );
+}
+
+export function ComparePickers({ labels, canStart }: ComparePickersProps) {
+  const router = useRouter();
+  const startCompare = useCompareStart();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  // A label the link names, when this instance holds it. Anything else — no
+  // param, a set deleted since the link was written — is the default below.
+  const linked = (key: 'a' | 'b', fallback: string) => {
+    const label = params.get(key);
+    return label !== null && labels.includes(label) ? label : fallback;
+  };
+  // Newest against the one before it: the comparison a reviewer opening this
+  // console almost always wants. Both fall back to the only set there is.
+  const [baseline, setBaseline] = useState(() => linked('a', labels[0] ?? ''));
+  const [candidate, setCandidate] = useState(() =>
+    linked('b', labels[1] ?? labels[0] ?? ''),
+  );
+
+  /* Both pickers follow the list they are handed, the way the run panel's report
+     picker does (RunPanel.tsx). `router.refresh()` re-renders this component
+     without remounting it, so a `useState` initialiser is read once and never
+     again — and the list DOES move under it: a delete or a prune takes a label
+     away, and a capture finishing puts a new one at the head.
+
+     Only a value that has left the list is corrected. A reviewer's chosen pair
+     survives a set arriving beside it — a selection moving under the cursor is
+     worse than a default that has aged — but a `<select>` whose value names no
+     option renders with nothing selected and would send `?a=<gone>` to the run
+     panel, which is a comparison this instance cannot make. */
+  if (labels.length > 0) {
+    if (!labels.includes(baseline)) setBaseline(labels[0] ?? '');
+    if (!labels.includes(candidate)) setCandidate(labels[1] ?? labels[0] ?? '');
+  }
+
+  /**
+   * Which press this is, and the whole of what makes a repeat press land.
+   *
+   * `?a&b&mode` describes the pair. It cannot describe the ASK, because two
+   * presses for the same pair are byte-identical — and the run panel, which has
+   * to ignore its own writes coming back, cannot tell an ask from its echo by
+   * content alone. It ignored both, so pressing this from another tab for the
+   * pair already on screen moved the URL and left the panel where it was.
+   *
+   * The counter is what separates them: it changes on every press and on nothing
+   * else, so an ask is never equal to what is already applied and an echo always
+   * is. Note what is NOT here — the panel never writes `cn` and never clears it.
+   * One writer per param is the point. #344 tried a split vocabulary the panel
+   * consumed and cleared, and the clear raced the tabs' own `router.replace`:
+   * the tab click was superseded by the in-flight navigation for the ask, the URL
+   * never left, and the next press wrote a byte-identical URL that Next no-ops.
+   * That wedged 4 of 6 production runs, permanently.
+   */
+  const [asks, setAsks] = useState(0);
+
+  const compare = () => {
+    const ask = asks + 1;
+    setAsks(ask);
+
+    const query = new URLSearchParams({
+      a: baseline,
+      b: candidate,
+      mode: COMPARE_MODE,
+      cn: String(ask),
+    });
+
+    // `scroll: false` — the pickers sit below the table the reviewer just chose
+    // from, and jumping to the top would move it out from under them.
+    router.replace(`${pathname}?${query}`, { scroll: false });
+
+    if (canStart) startCompare({ baseline, candidate });
+  };
+
+  return (
+    <Stack gap={2} className="vd-compare">
+      <Note name="A and B">
+        A is the before, B is the after — compare judges B against A and buckets what
+        moved
+      </Note>
+      <Stack direction="row" gap={3} align="center" wrap>
+        <Picker name="A" value={baseline} labels={labels} onChange={setBaseline} />
+        <Picker name="B" value={candidate} labels={labels} onChange={setCandidate} />
+        <Button variant="secondary" onClick={compare}>
+          compare A ⇄ B
+        </Button>
+      </Stack>
+    </Stack>
+  );
+}

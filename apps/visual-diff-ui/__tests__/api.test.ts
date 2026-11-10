@@ -1,0 +1,495 @@
+// Imported explicitly rather than relying on `globals: true` — tsconfig's
+// `**/*.ts` include means tsc typechecks this file.
+import { spawnSync } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { GET as getCurrentJob } from '../app/api/jobs/current/route';
+import { GET as getEnv } from '../app/api/env/route';
+import { GET as getLabel } from '../app/api/label/route';
+import { GET as getReport } from '../app/api/reports/[id]/route';
+import { GET as getReports } from '../app/api/reports/route';
+import { GET as getSets } from '../app/api/sets/route';
+import { GET as getShot } from '../app/api/shots/[report]/[file]/route';
+import { GET as getSetShot } from '../app/api/sets/[label]/shots/[file]/route';
+import { GET as getStories } from '../app/api/stories/route';
+import {
+  CurrentJobResponseSchema,
+  LabelResponseSchema,
+  RunnerEnvSchema,
+  StoriesResponseSchema,
+} from '../lib/api-contract';
+
+/**
+ * Refresh the index before any 2 s-bounded call, outside that bound.
+ *
+ * `GET /api/label` names the checkout through `describeCheckout`, whose `git`
+ * calls are killed after 2 s. In the pre-push gate's fresh clone the first
+ * `git status --porcelain` refreshes the whole index, and under the gate's own
+ * `test` load that has taken longer: the label answered null and the suite
+ * failed on a correct tree. The same warm-up as `git.test.ts` and
+ * `capture-set.test.ts`; exit status is ignored, a dirty tree is a valid answer.
+ */
+beforeAll(() => {
+  spawnSync('git', ['update-index', '-q', '--refresh'], {
+    cwd: path.resolve(process.cwd(), '..', '..'),
+    stdio: 'ignore',
+  });
+}, 120_000);
+
+/**
+ * The read-only JSON and image surface. Every handler resolves the data
+ * directory itself, and with `VISUAL_DIFF_DATA_DIR` unset that is the committed
+ * fixture tree — which is also what a deployed instance with no CLI behind it
+ * serves, so these run against exactly the shape sample mode ships.
+ */
+
+const REPORT = 'main-2026-08-17__main-2026-08-13';
+/** The second sample report: the IconButton stories entering the corpus, so the
+ *  demo carries an `added` verdict as well as a `changed` one. */
+const ADDED_REPORT = 'baselines__main-2026-08-24';
+/** The latest corpus comparison, and the same pair read backwards — the one
+ *  fixture that shows `removed`. See fixtures/README.md. */
+const LATEST_REPORT = 'main-2026-09-17__main-2026-10-13';
+const REMOVED_REPORT = 'main-2026-10-13__main-2026-09-17';
+const SHOT = 'atoms__desktop__light__atoms-prose--default.diff.png';
+
+const request = new Request('http://localhost:3300/');
+
+const context = <T extends object>(params: T) => ({ params: Promise.resolve(params) });
+
+afterEach(() => {
+  delete process.env.VISUAL_DIFF_FAKE_HOST_FINGERPRINT;
+  delete process.env.VISUAL_DIFF_FAKE_DOCKER;
+  // `GET /api/label` is the one handler here that is pointed somewhere other
+  // than the fixtures, because it is the one whose answer depends on what is
+  // already on disk. Unset again so the rest of the file keeps its frame.
+  delete process.env.VISUAL_DIFF_DATA_DIR;
+});
+
+describe('GET /api/sets', () => {
+  it('serves the sample sets, badged as sample data', async () => {
+    const response = await getSets();
+
+    const body = (await response.json()) as { isSample: boolean; sets: unknown[] };
+    expect(body.isSample).toBe(true);
+    expect(body.sets).toHaveLength(6);
+  });
+
+  // The reader behind it is cached with `cacheLife('seconds')` and a tag a
+  // delete purges, so a stored copy in front of it would outlive the
+  // invalidation and hand back a set the reviewer just removed.
+  it('refuses to be stored', async () => {
+    const response = await getSets();
+
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+});
+
+describe('GET /api/reports', () => {
+  it('serves the sample report list, badged as sample data', async () => {
+    const response = await getReports();
+
+    const body = (await response.json()) as {
+      isSample: boolean;
+      reports: { id: string }[];
+    };
+    expect(body.isSample).toBe(true);
+    // Newest-first is a descending sort on the id, so the `main-…` reports lead.
+    expect(body.reports.map((report) => report.id)).toEqual([
+      REMOVED_REPORT,
+      LATEST_REPORT,
+      REPORT,
+      ADDED_REPORT,
+    ]);
+  });
+
+  // Same reason as /api/sets: a cached list survives the tag a delete purges.
+  it('refuses to be stored', async () => {
+    const response = await getReports();
+
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+});
+
+describe('GET /api/reports/[id]', () => {
+  it('serves one validated summary', async () => {
+    const response = await getReport(request, context({ id: REPORT }));
+
+    const body = (await response.json()) as {
+      isSample: boolean;
+      report: { exitCode: number };
+    };
+    expect(response.status).toBe(200);
+    expect(body.report.exitCode).toBe(1);
+  });
+
+  it('answers 404 for a report nothing captured', async () => {
+    const response = await getReport(request, context({ id: 'never-ran' }));
+
+    expect(response.status).toBe(404);
+  });
+
+  it('answers 404 for an id that climbs out of the data directory', async () => {
+    const response = await getReport(request, context({ id: '../../../etc' }));
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('GET /api/env', () => {
+  // `runnerEnv` asks `dockerAvailable()` whenever this host is not already the
+  // pinned image, and that probe is an `execFileSync('docker', ['info', ...])`
+  // with a 3s ceiling — a blocking subprocess, inside a unit test whose default
+  // timeout is 5s. On a laptop with the daemon up it answers in milliseconds and
+  // nothing here ever noticed; on a cold CI runner it can burn the full three
+  // seconds, and spawn overhead on top of that is what took `reports the running
+  // host` past 5000ms and reddened a release PR that had touched no code.
+  //
+  // `VISUAL_DIFF_FAKE_DOCKER` is the seam lib/docker.ts declares for exactly this
+  // — its own comment says a probe that shells out "answers differently on a
+  // laptop with Docker Desktop running and on one without", which is the same
+  // reason it must not be reached from a unit test at all. Declared for every
+  // test in this block rather than the one that failed: three of the four take
+  // the same path, and only luck separated them.
+  beforeEach(() => {
+    process.env.VISUAL_DIFF_FAKE_DOCKER = '1';
+  });
+
+  it('reports the running host', async () => {
+    const response = await getEnv();
+
+    const body = (await response.json()) as { platform: string; arch: string };
+    expect(body).toMatchObject({ platform: process.platform, arch: process.arch });
+  });
+
+  // The seam the accept gate is built on: nothing else feeds `image`, so a test
+  // world drives the whole decision from this one variable.
+  it('claims the image the environment declares', async () => {
+    process.env.VISUAL_DIFF_FAKE_HOST_FINGERPRINT =
+      'mcr.microsoft.com/playwright:v1.62.1-noble';
+
+    const response = await getEnv();
+
+    const body = (await response.json()) as { image: string; playwright: string };
+    expect(body).toMatchObject({
+      image: 'mcr.microsoft.com/playwright:v1.62.1-noble',
+      playwright: '1.62.1',
+    });
+  });
+
+  it('claims no image when nothing declares one', async () => {
+    const response = await getEnv();
+
+    const body = (await response.json()) as { image: null; playwright: null };
+    expect(body).toMatchObject({ image: null, playwright: null });
+  });
+
+  it('is never cached', async () => {
+    const response = await getEnv();
+
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+});
+
+/**
+ * The name the next capture would be given.
+ *
+ * Two halves meet in this handler — the branch sanitised into a label, and
+ * `freeLabel` walking past whatever is already there — and only the second needs
+ * a directory, which is why this is the one describe here that sets
+ * `VISUAL_DIFF_DATA_DIR`. The branch is deliberately not pinned to a literal:
+ * this suite runs on whatever is checked out, and on CI that is a detached HEAD.
+ */
+describe('GET /api/label', () => {
+  // Reimplemented rather than imported from lib/jobs, so the assertion is a
+  // second opinion instead of a restatement of the thing it checks — but on the
+  // SAME clock, which is UTC: the label is sorted against `capturedAt`, and
+  // `today` moved to UTC to agree with it. Read off the local clock, this
+  // passed at home and failed for any runner far enough east or west that the
+  // two calendars had already parted — Tokyo at 02:37 asks for the 25th of a
+  // day UTC still calls the 24th.
+  const today = () => {
+    const now = new Date();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+
+    return `${now.getUTCFullYear()}-${month}-${day}`;
+  };
+
+  /** A data directory that exists and holds something, which is what
+   *  `dataDirFrom` requires before it will read one instead of the fixtures. */
+  const populatedDir = () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vd-label-'));
+    fs.mkdirSync(path.join(dir, 'sets'), { recursive: true });
+
+    return dir;
+  };
+
+  /** Parsed, not cast: `LabelResponseSchema` is what the wand reads this answer
+   *  with, so running every case below through it makes this describe the
+   *  runtime witness for the label endpoint's half of that contract. */
+  const read = async () => {
+    const response = await getLabel();
+
+    return {
+      response,
+      body: LabelResponseSchema.parse(await response.json()),
+    };
+  };
+
+  it('names the checkout it is running in, and today', async () => {
+    // Pointed away from the fixtures deliberately — see the note above. The
+    // sample tree carries dated set labels of its own, and reading it here
+    // would make this assertion depend on whether one of them happens to be
+    // today's: the wand counts past a label it already has, and `-2` is not
+    // the shape this case is about.
+    process.env.VISUAL_DIFF_DATA_DIR = populatedDir();
+
+    const { body } = await read();
+
+    // Shape and day, not a name: the stem is whoever is looking. `detached` is
+    // the stem on CI and is as legal as any other.
+    expect(body.label).toMatch(new RegExp(`^[A-Za-z0-9][A-Za-z0-9.-]*-${today()}$`));
+  });
+
+  it('counts past a set this instance already has', async () => {
+    // `sets/` up front, not just as a side effect below: an empty directory is
+    // "no data here" to `dataDirFrom`, which would send the first read to the
+    // fixtures and leave this comparing two labels from two different trees.
+    const dir = populatedDir();
+    process.env.VISUAL_DIFF_DATA_DIR = dir;
+
+    const first = (await read()).body.label;
+    // Asserted rather than cast: a machine with no `git` answers null here, and
+    // a null joined into a path fails three lines later saying nothing useful.
+    expect(first).not.toBeNull();
+
+    fs.mkdirSync(path.join(dir, 'sets', first as string), { recursive: true });
+
+    const second = (await read()).body.label;
+
+    expect(second).toBe(`${first}-2`);
+
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('is never cached, because a capture that just finished changes it', async () => {
+    const { response } = await read();
+
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+});
+
+describe('GET /api/shots/[report]/[file]', () => {
+  it('serves a shot as an immutable PNG', async () => {
+    const response = await getShot(request, context({ report: REPORT, file: SHOT }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('image/png');
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, max-age=31536000, immutable',
+    );
+  });
+
+  it('serves the bytes on disk', async () => {
+    const response = await getShot(request, context({ report: REPORT, file: SHOT }));
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    // The PNG signature, so the response is the image rather than an error page
+    // that happened to arrive with a 200.
+    expect([...bytes.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+  });
+
+  it.each([
+    ['a relative climb', REPORT, '../../summary.json'],
+    ['an absolute path', REPORT, '/etc/passwd'],
+    ['a climbing report id', '../..', SHOT],
+    ['a file that is not a PNG', REPORT, 'summary.json'],
+  ])('answers 404 for %s', async (_case, report, file) => {
+    const response = await getShot(request, context({ report, file }));
+
+    expect(response.status).toBe(404);
+  });
+
+  it('answers 404 for a PNG that is not there', async () => {
+    const response = await getShot(
+      request,
+      context({ report: REPORT, file: 'never-captured.diff.png' }),
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+/**
+ * The runtime witness for the client contract.
+ *
+ * Each of these handlers annotates its payload with the type the console parses
+ * that answer against, so tsc already refuses a field dropped or added on the
+ * server. What a type cannot see is the trip through `Response.json` — an
+ * `undefined` that vanishes, a value serialised as something else — and what it
+ * cannot see at all is a handler nobody typechecked because it was never
+ * imported here. These cases run the REAL response back through the REAL schema.
+ *
+ * `.parse`, not `.safeParse`: a miss should name the failing path in the report
+ * rather than come back as `false`, which is the whole reason this app parses
+ * files with zod instead of duck-typing them.
+ *
+ * `GET /api/label` is not here — it is exercised against a data directory of its
+ * own above, and its schema case rides along there for the same reason.
+ */
+describe('every answer the console parses', () => {
+  it('serves an env body the run panel can read', async () => {
+    const response = await getEnv();
+
+    const body = RunnerEnvSchema.parse(await response.json());
+    expect(body.platform).toBe(process.platform);
+  });
+
+  it('serves a corpus the filter picker can read', async () => {
+    const response = await getStories();
+
+    const body = StoriesResponseSchema.parse(await response.json());
+    // A deployment with no Storybook build answers with an empty list, which is
+    // a real answer — so the shape is the assertion and the length is not.
+    expect(Array.isArray(body.tiers)).toBe(true);
+  });
+
+  it('serves a poll the current-job region can read', async () => {
+    const response = await getCurrentJob();
+
+    const body = CurrentJobResponseSchema.parse(await response.json());
+    // The fixture tree has no CLI behind it, which is the answer the poller
+    // stops polling on.
+    expect(body.isSample).toBe(true);
+    expect(body.running).toBe(false);
+  });
+});
+
+/**
+ * A set's own screenshots, which no other route can serve.
+ *
+ * The fixture tree ships no `sets/` directory — sample mode lists sets it holds
+ * no shots for, which is exactly why the console draws no link for them — so the
+ * positive cases here point at the corpus, read out of the checkout.
+ */
+describe('GET /api/sets/[label]/shots/[file]', () => {
+  const CORPUS_SHOT = 'atoms__desktop__light__atoms-badge--accent.png';
+
+  it('serves a corpus screenshot as a revalidated PNG', async () => {
+    const response = await getSetShot(
+      request,
+      context({ label: 'baselines', file: CORPUS_SHOT }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('image/png');
+    // NOT `immutable`, unlike the report route: a set label names a directory
+    // that gets rewritten — the corpus changes on every accept — so a browser
+    // that never revalidated would show yesterday's pixels during exactly the
+    // review this page exists for.
+    expect(response.headers.get('Cache-Control')).toBe('no-cache');
+    expect(response.headers.get('ETag')).toBeTruthy();
+  });
+
+  it('answers a revisit with 304 and no body', async () => {
+    const first = await getSetShot(
+      request,
+      context({ label: 'baselines', file: CORPUS_SHOT }),
+    );
+    const etag = first.headers.get('ETag') ?? '';
+
+    const second = await getSetShot(
+      new Request('http://localhost:3300/', { headers: { 'if-none-match': etag } }),
+      context({ label: 'baselines', file: CORPUS_SHOT }),
+    );
+
+    expect(second.status).toBe(304);
+  });
+
+  it('serves the bytes on disk', async () => {
+    const response = await getSetShot(
+      request,
+      context({ label: 'baselines', file: CORPUS_SHOT }),
+    );
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect([...bytes.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+  });
+
+  // Every refusal is the same 404 a miss is: nothing here confirms what is on
+  // the disk above the data directory or beside the checkout.
+  it.each([
+    ['a relative climb in the filename', 'baselines', '../../sets.json'],
+    ['an absolute path', 'baselines', '/etc/passwd'],
+    ['a file that is not a PNG', 'baselines', 'BASELINE_ENV.json'],
+    ['a climbing label', '../..', CORPUS_SHOT],
+    ['a label that is not one', 'a/b', CORPUS_SHOT],
+    ['a set this instance does not hold', 'never-captured', CORPUS_SHOT],
+    ['a screenshot that is not there', 'baselines', 'atoms__desktop__light__nope.png'],
+  ])('refuses %s with a 404', async (_case, label, file) => {
+    const response = await getSetShot(request, context({ label, file }));
+
+    expect(response.status).toBe(404);
+  });
+
+  describe('on a deployment', () => {
+    const DEPLOYMENT = 'dpl_test';
+
+    beforeEach(() => {
+      process.env.VERCEL_DEPLOYMENT_ID = DEPLOYMENT;
+    });
+
+    afterEach(() => {
+      delete process.env.VERCEL_DEPLOYMENT_ID;
+    });
+
+    // The corpus was traced into this deployment and cannot change under it, so
+    // the CDN may keep it for the deployment's life — `no-cache` here made every
+    // shot of every visit a function call.
+    it('lets the CDN keep a corpus screenshot', async () => {
+      const response = await getSetShot(
+        request,
+        context({ label: 'baselines', file: CORPUS_SHOT }),
+      );
+
+      expect(response.headers.get('Cache-Control')).toBe(
+        'public, max-age=0, s-maxage=31536000',
+      );
+      expect(response.headers.get('ETag')).toContain(DEPLOYMENT);
+    });
+
+    it('answers a corpus revisit with 304', async () => {
+      const first = await getSetShot(
+        request,
+        context({ label: 'baselines', file: CORPUS_SHOT }),
+      );
+
+      const second = await getSetShot(
+        new Request('http://localhost:3300/', {
+          headers: { 'if-none-match': first.headers.get('ETag') ?? '' },
+        }),
+        context({ label: 'baselines', file: CORPUS_SHOT }),
+      );
+
+      expect(second.status).toBe(304);
+      expect(second.headers.get('Cache-Control')).toBe(
+        'public, max-age=0, s-maxage=31536000',
+      );
+    });
+
+    // A capture label can be deleted and recaptured behind the same URL, on a
+    // deployment as anywhere else.
+    it('still revalidates a capture set screenshot', async () => {
+      const response = await getSetShot(
+        request,
+        context({ label: 'main-2026-08-30', file: CORPUS_SHOT }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+    });
+  });
+});

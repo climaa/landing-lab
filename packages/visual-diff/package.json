@@ -1,0 +1,36 @@
+{
+  "name": "@lab/visual-diff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./policy": "./src/policy.mjs",
+    "./artifacts": "./src/artifacts.mjs",
+    "./capture": "./src/capture.mjs",
+    "./commands": "./src/commands.mjs",
+    "./compare": "./src/compare.mjs",
+    "./ledger": "./src/ledger.mjs"
+  },
+  "bin": {
+    "visual-diff": "./src/cli.mjs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "health": "node ../../scripts/complexity-gate.mjs",
+    "clean": "rm -rf .turbo node_modules"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "pixelmatch": "^8.0.0",
+    "playwright": "1.62.1",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@lab/tsconfig": "workspace:*",
+    "@types/node": "^22.20.5",
+    "@types/pngjs": "^6.0.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

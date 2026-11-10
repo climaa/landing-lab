@@ -1,0 +1,15 @@
+{
+  "extends": "@lab/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true
+  },
+  "include": ["*.ts", "pages", "steps", "support", "__tests__"],
+  "exclude": [
+    "node_modules",
+    ".features-gen",
+    ".features-gen-local",
+    "playwright-report",
+    "test-results"
+  ]
+}

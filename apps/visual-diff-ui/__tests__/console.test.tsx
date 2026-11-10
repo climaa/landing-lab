@@ -1,0 +1,1193 @@
+// @vitest-environment jsdom
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+// Imported explicitly rather than relying on `globals: true` — tsconfig's
+// `**/*.tsx` include means tsc typechecks this file.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DashboardTemplate } from '../components/DashboardTemplate';
+import { HISTORY_ANCHOR } from '../lib/anchors';
+import type { HistoryRecord } from '../lib/job-contract';
+import type { CaptureSet } from '../lib/summary';
+import type { ReportListEntry } from '../lib/data';
+import { pushCalls, replaceCalls, setSearchParams } from './stubs/next-navigation';
+
+/**
+ * The console's read surface: three tables, the compare seam, and the retention
+ * control.
+ *
+ * Rendered through `DashboardTemplate` rather than through the page, because the
+ * page's only job is to resolve the data directory and hand the readers'
+ * answers over — that resolution has its own suite (data.test.ts), and this one
+ * is about what a reviewer can see and reach.
+ *
+ * Nothing here asserts appearance. What the reflow-to-cards looks like below
+ * 768 px belongs to the differ; what survives it — the roles, the names, the
+ * `title` a truncated cell carries — is what jsdom can see and pixels cannot.
+ */
+
+// `globals` is off in vitest.config.mts, so Testing Library registers no automatic
+// cleanup — without this every render stacks in the same document and the queries
+// below match the previous test's DOM.
+afterEach(() => {
+  cleanup();
+  replaceCalls.length = 0;
+  pushCalls.length = 0;
+  vi.unstubAllEnvs();
+});
+
+/**
+ * The zone the history stamps below are read in.
+ *
+ * Pinned rather than inherited: `formatStamp` renders an instant on the reader's
+ * clock (lib/outcome.ts), so the expected strings here are only fixed once the
+ * reader's clock is. Madrid is +2 in August, which is the offset every stamp in
+ * this file is written with. Its own rules — the rolling, the winter offset —
+ * are pinned in outcome.test.ts; this file only needs the values to hold still.
+ */
+beforeEach(() => {
+  vi.stubEnv('TZ', 'Europe/Madrid');
+});
+
+const CLEAN: CaptureSet = {
+  label: 'main-2026-08-17',
+  sha: 'f2570e1',
+  branch: 'main',
+  capturedAt: '2026-08-17',
+  stories: 106,
+};
+
+const DIRTY: CaptureSet = {
+  label: 'wip-2026-08-16',
+  sha: 'abc1234',
+  branch: 'feat/a-branch-name-long-enough-to-truncate',
+  capturedAt: '2026-08-16',
+  stories: 104,
+  dirty: true,
+};
+
+const REPORT: ReportListEntry = {
+  id: 'main-2026-08-17__main-2026-08-13',
+  exitCode: 1,
+  counts: { unchanged: 100, changed: 6, added: 0, removed: 0, errored: 0, a11y: 0 },
+};
+
+/** {@link REPORT}'s chip row as a cell reads: every bucket and its count, in
+ *  the report page's own order, then the total. */
+const REPORT_BUCKETS = 'changed6added0removed0errored0a11y0unchanged100total106';
+
+const RUN: HistoryRecord = {
+  id: '2026-08-17T08-00-00Z-compare',
+  mode: 'compare',
+  label: 'main-2026-08-17__main-2026-08-13',
+  startedAt: '2026-08-17T08:00:00Z',
+  endedAt: '2026-08-17T08:01:35Z',
+  exitCode: 1,
+  reportId: 'main-2026-08-17__main-2026-08-13',
+};
+
+const INTERRUPTED: HistoryRecord = {
+  id: '2026-08-11T08-15-04Z-capture',
+  mode: 'capture',
+  label: 'main-2026-08-11',
+  startedAt: '2026-08-11T08:15:04Z',
+  endedAt: null,
+  exitCode: null,
+  reportId: null,
+};
+
+/** The committed corpus, as a checkout with one would report it. */
+const CORPUS = {
+  label: 'baselines',
+  sha: '8b95e14',
+  acceptedAt: '2026-08-18',
+  stories: 130,
+  bytes: 1_700_000,
+};
+
+interface ConsoleContents {
+  sets?: CaptureSet[];
+  sizes?: Record<string, number>;
+  reports?: ReportListEntry[];
+  history?: HistoryRecord[];
+  /** Null by default: most of this suite is about the captured sets, and a
+   *  checkout is not something a template case should have to have. */
+  corpus?: typeof CORPUS | null;
+  /** Null by default: nothing holds the lock, so every history row is a run
+   *  that is over. The one case that sets it is the one about a live job. */
+  runningId?: string | null;
+  /** True by default: this suite is about a console someone is looking at on
+   *  their own machine, which is one of the two things a console needs to be
+   *  able to mutate anything. */
+  isLocal?: boolean;
+  /** False by default — see the note below. The cases that set it are the ones
+   *  about a console serving the committed fixtures, which is what a checkout
+   *  with no capture yet looks like on your own machine. */
+  isSample?: boolean;
+}
+
+/** The console with everything populated, unless a case says otherwise.
+ *
+ *  Not in sample mode unless a case asks: this suite is about the read surface,
+ *  and the write half's own suites (run-panel, current-job, confirm-dialogs) own
+ *  what the controls do. What IS here is whether a destructive control is drawn
+ *  at all, which is the template's decision and not theirs. The two client islands in the right column poll on mount and
+ *  jsdom answers neither — both treat an unreachable API as "nothing running",
+ *  which is what keeps this suite about the tables. */
+function consoleWith({
+  sets = [CLEAN, DIRTY],
+  sizes = { [CLEAN.label]: 95_500_000, [DIRTY.label]: 1000 },
+  reports = [REPORT],
+  history = [RUN, INTERRUPTED],
+  corpus = null,
+  runningId = null,
+  isLocal = true,
+  isSample = false,
+}: ConsoleContents = {}) {
+  return (
+    <DashboardTemplate
+      sets={sets}
+      sizes={sizes}
+      reports={reports}
+      history={history}
+      isSample={isSample}
+      isLocal={isLocal}
+      corpus={corpus}
+      runningId={runningId}
+    />
+  );
+}
+
+const table = (name: string) => screen.getByRole('table', { name });
+
+/** A named table's two row groups: the header row's, then the data rows'. */
+function groupsOf(name: string): [HTMLElement, HTMLElement] {
+  const [head, body] = within(table(name)).getAllByRole('rowgroup');
+  if (!head || !body) throw new Error(`${name} is missing a row group`);
+
+  return [head, body];
+}
+
+/** The data rows of a named table — the second `rowgroup` skips the header. */
+function rowsOf(name: string): HTMLElement[] {
+  const [, body] = groupsOf(name);
+
+  return within(body).getAllByRole('row');
+}
+
+/** The first data row, for the cases that render exactly one. */
+function firstRowOf(name: string): HTMLElement {
+  const [row] = rowsOf(name);
+  if (!row) throw new Error(`${name} has no data rows`);
+
+  return row;
+}
+
+const cellsOf = (row: HTMLElement) =>
+  within(row)
+    .getAllByRole('cell')
+    .map((cell) => cell.textContent);
+
+describe('the screenshot sets panel', () => {
+  it('names its table, so the page can hold more than one', () => {
+    render(consoleWith());
+
+    expect(table('Screenshot sets')).toBeDefined();
+  });
+
+  // Structural, not a look: the table's least width is the fixed columns plus a
+  // floor for the label, and the panel scrolls past it. Without it a 1280px
+  // viewport left the label column 10px wide and the set link unclickable.
+  it('keeps room for the label and scrolls instead of squeezing it', () => {
+    render(consoleWith({ sets: [CLEAN] }));
+
+    const scroll = table('Screenshot sets').parentElement;
+
+    expect(scroll?.className).toBe('vd-sets-scroll');
+    expect(scroll?.style.getPropertyValue('--vd-sets-floor')).toBe(
+      'calc(6rem + 6rem + 6.5rem + 4rem + 6rem + 6rem + 10rem)',
+    );
+  });
+
+  // The acceptance scenario, cell by cell: "I see each screenshot set with its
+  // branch, story count and size".
+  it('lists a set with its branch, story count and size', () => {
+    render(consoleWith({ sets: [CLEAN] }));
+
+    const row = firstRowOf('Screenshot sets');
+
+    expect(cellsOf(row)).toEqual([
+      'main-2026-08-17',
+      'f2570e1',
+      'main',
+      '2026-08-17',
+      '106 stories',
+      '95.5 MB',
+      'delete',
+    ]);
+  });
+
+  /**
+   * Absent, not disabled, off localhost — the same rule the reports table keeps
+   * one column over, and the one this table did not keep until the route did.
+   *
+   * `DELETE /api/sets/[label]` refuses a request that did not come from the
+   * machine running the console, and a set is the thing here that cannot be
+   * remade: a report is a summary and its shots, a set is a Storybook build and
+   * a containerised capture taken against a checkout. The empty cell is the
+   * column standing where the button was, exactly as the reports row does.
+   */
+  it('draws no delete on a console nobody is running locally', () => {
+    render(consoleWith({ sets: [CLEAN], isLocal: false }));
+
+    const row = firstRowOf('Screenshot sets');
+
+    expect(cellsOf(row)).toEqual([
+      'main-2026-08-17',
+      'f2570e1',
+      'main',
+      '2026-08-17',
+      '106 stories',
+      '95.5 MB',
+      '',
+    ]);
+  });
+
+  /**
+   * The other console that cannot mutate, and the one that is easy to forget:
+   * on your own machine, with no data directory behind it.
+   *
+   * A fresh checkout running `pnpm dev` before it has captured anything is
+   * exactly this — local, and serving the committed fixtures. Every mutating
+   * route refuses it with `SAMPLE_DATA` because those are this repo's files and
+   * not an instance's state, so a delete here could only ever answer with a
+   * refusal. The run panel has always disabled its controls on this console;
+   * the tables did not until they were given `frozen` rather than `isLocal`.
+   */
+  it('draws no delete on a local console showing the committed fixtures', () => {
+    render(consoleWith({ sets: [CLEAN], isSample: true }));
+
+    expect(cellsOf(firstRowOf('Screenshot sets')).at(-1)).toBe('');
+  });
+
+  /**
+   * The unit is in the cell, clipped, rather than left to the column header.
+   *
+   * Below 768 px the row reflows into a card whose per-cell label is `::before`
+   * generated content, and generated content is not in the accessibility tree —
+   * so a reader hears "106" with nothing to say what 106 is. The acceptance
+   * scenario reads the same text ("its branch, story count and size"), which is
+   * why the words are the cell's rather than the stylesheet's.
+   */
+  it('carries the story count with its unit, clipped rather than drawn', () => {
+    render(consoleWith({ sets: [CLEAN] }));
+
+    const unit = within(firstRowOf('Screenshot sets')).getByText('stories');
+
+    expect(unit.className).toBe('ds-visually-hidden');
+  });
+
+  it('reports a set this instance holds no shots for as an unknown size', () => {
+    render(consoleWith({ sets: [CLEAN], sizes: {} }));
+
+    const row = firstRowOf('Screenshot sets');
+
+    expect(cellsOf(row)).toContain('—');
+  });
+
+  it('offers a delete button per set', () => {
+    render(consoleWith());
+
+    const deletes = within(table('Screenshot sets')).getAllByRole('button', {
+      name: 'delete',
+    });
+
+    expect(deletes).toHaveLength(2);
+  });
+
+  it('shows an empty state instead of a table when nothing has been captured', () => {
+    render(consoleWith({ sets: [] }));
+
+    expect(screen.queryByRole('table', { name: 'Screenshot sets' })).toBeNull();
+    expect(screen.getByText(/captured nothing yet/i)).toBeDefined();
+  });
+
+  // The board's column is seven characters wide. A registry written with a full
+  // sha must not widen it past every cell beside it, and the whole sha is what
+  // a reviewer copies out of the row.
+  it('shortens a full-length sha and keeps the whole one on title', () => {
+    const full = 'f2570e10ba3739e79f7124c06b823e5b8fb806ce';
+    render(consoleWith({ sets: [{ ...CLEAN, sha: full }] }));
+
+    const sha = screen.getByTitle(full);
+
+    expect(sha.textContent).toBe('f2570e1');
+  });
+
+  it('carries the full branch name on a cell that truncates it', () => {
+    render(consoleWith({ sets: [DIRTY] }));
+
+    const branch = screen.getByTitle(DIRTY.branch);
+
+    expect(branch.textContent).toBe(DIRTY.branch);
+  });
+});
+
+describe('the dirty badge', () => {
+  it('marks a set captured from a tree that was not clean', () => {
+    render(consoleWith({ sets: [DIRTY] }));
+
+    const badge = screen.getByText('dirty');
+
+    expect(badge.className).toBe('ds-badge ds-badge--warning');
+  });
+
+  it('is absent from a set captured from a clean tree', () => {
+    render(consoleWith({ sets: [CLEAN] }));
+
+    expect(screen.queryByText('dirty')).toBeNull();
+  });
+
+  it('sits in the label cell, the value it qualifies', () => {
+    render(consoleWith({ sets: [DIRTY] }));
+
+    const label = screen.getByTitle(DIRTY.label);
+
+    expect(within(label).getByText('dirty')).toBeTruthy();
+  });
+});
+
+/**
+ * A second capture of a commit an older set already holds. The list is newest
+ * first, so the mark goes on the lower one and the newest stays unmarked.
+ */
+describe('the same-sha badge', () => {
+  const AGAIN: CaptureSet = { ...CLEAN, label: 'main-2026-08-17-2' };
+  const THIRD: CaptureSet = { ...CLEAN, label: 'main-2026-08-17-3' };
+
+  it('marks the older of two sets captured from the same sha, under its sha', () => {
+    render(consoleWith({ sets: [AGAIN, CLEAN] }));
+
+    const [newer, older] = rowsOf('Screenshot sets') as [HTMLElement, HTMLElement];
+    const sha = within(older).getByTitle(CLEAN.sha);
+
+    expect(within(sha).getByText('same sha').className).toBe(
+      'ds-badge ds-badge--neutral',
+    );
+    expect(
+      within(within(older).getByTitle(CLEAN.label)).queryByText('same sha'),
+    ).toBeNull();
+    expect(within(newer).queryByText('same sha')).toBeNull();
+  });
+
+  it('marks every capture but the newest', () => {
+    render(consoleWith({ sets: [THIRD, AGAIN, CLEAN] }));
+
+    const marked = rowsOf('Screenshot sets').map(
+      (row) => within(row).queryByText('same sha') !== null,
+    );
+
+    expect(marked).toEqual([false, true, true]);
+  });
+
+  it('is absent when every set has its own sha', () => {
+    render(consoleWith({ sets: [CLEAN, DIRTY] }));
+
+    expect(screen.queryByText('same sha')).toBeNull();
+  });
+});
+
+describe('the compare pickers', () => {
+  afterEach(() => setSearchParams(''));
+
+  // A link to a pair has to show that pair here as well as in the run panel,
+  // or one screen names two different comparisons.
+  it('open on the pair a shared link names', () => {
+    setSearchParams(`a=${DIRTY.label}&b=${CLEAN.label}&mode=compare`);
+
+    render(consoleWith());
+
+    expect((screen.getByRole('combobox', { name: 'A' }) as HTMLSelectElement).value).toBe(
+      DIRTY.label,
+    );
+    expect((screen.getByRole('combobox', { name: 'B' }) as HTMLSelectElement).value).toBe(
+      CLEAN.label,
+    );
+  });
+
+  // A set deleted since the link was written: a select naming no option
+  // renders with nothing chosen, so the default pair stands in.
+  it('fall back to the default pair for a label this instance does not hold', () => {
+    setSearchParams('a=main-1999-01-01&b=main-1999-01-02');
+
+    render(consoleWith());
+
+    expect((screen.getByRole('combobox', { name: 'A' }) as HTMLSelectElement).value).toBe(
+      CLEAN.label,
+    );
+    expect((screen.getByRole('combobox', { name: 'B' }) as HTMLSelectElement).value).toBe(
+      DIRTY.label,
+    );
+  });
+
+  it('labels the two pickers A and B', () => {
+    render(consoleWith());
+
+    expect(screen.getByRole('combobox', { name: 'A' })).toBeDefined();
+    expect(screen.getByRole('combobox', { name: 'B' })).toBeDefined();
+  });
+
+  // The pinned half of the contract: the scenario chooses a set by the text it
+  // reads, so the option's label is the set's label and not an id of this app's.
+  it('offers every set as an option, labelled by its set label', () => {
+    render(consoleWith());
+
+    const options = within(screen.getByRole('combobox', { name: 'A' })).getAllByRole(
+      'option',
+    );
+
+    expect(options.map((option) => option.textContent)).toEqual([
+      CLEAN.label,
+      DIRTY.label,
+    ]);
+  });
+
+  // Nothing pre-fills the run panel but the URL: no store, no context. The panel
+  // reads these four params back with `useSearchParams()` — see
+  // __tests__/run-panel.test.tsx, which drives the other half of this seam.
+  // `cn` is the ask counter: the pair says WHAT to compare, `cn` says that a
+  // press happened, which two identical pairs cannot say for themselves.
+  it('writes the chosen pair into the URL as a compare request', () => {
+    render(consoleWith());
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    expect(replaceCalls.map((call) => call.url)).toEqual([
+      `/?a=${CLEAN.label}&b=${DIRTY.label}&mode=compare&cn=1`,
+    ]);
+  });
+
+  /**
+   * The guarantee the counter exists for. Two presses for the SAME pair must not
+   * write the same URL twice: Next no-ops a byte-identical `replace`, so the
+   * second press would not navigate and the panel would never be asked again —
+   * which is the defect this closes, seen from the writing side.
+   */
+  it('writes a different URL for a second press of the same pair', () => {
+    render(consoleWith());
+    const button = screen.getByRole('button', { name: 'compare A ⇄ B' });
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    const urls = replaceCalls.map((call) => call.url);
+
+    expect(urls).toEqual([
+      `/?a=${CLEAN.label}&b=${DIRTY.label}&mode=compare&cn=1`,
+      `/?a=${CLEAN.label}&b=${DIRTY.label}&mode=compare&cn=2`,
+    ]);
+    expect(urls[0]).not.toBe(urls[1]);
+  });
+
+  it('sends the reviewer the pair they chose, not the pair it opened with', () => {
+    render(consoleWith());
+    fireEvent.change(screen.getByRole('combobox', { name: 'B' }), {
+      target: { value: CLEAN.label },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    expect(replaceCalls.map((call) => call.url)).toEqual([
+      `/?a=${CLEAN.label}&b=${CLEAN.label}&mode=compare&cn=1`,
+    ]);
+  });
+
+  /**
+   * `router.refresh()` re-renders this island without remounting it, so the
+   * `useState` initialisers run once and the list moves under them afterwards —
+   * a delete or a prune takes a label away. A `<select>` holding a value no
+   * option carries renders with nothing selected, and the button beside it would
+   * send the run panel a set this instance does not have.
+   */
+  it('follows the list when the set it had selected is gone', () => {
+    const { rerender } = render(consoleWith());
+    rerender(
+      consoleWith({ sets: [DIRTY], sizes: { [DIRTY.label]: 1000 }, corpus: CORPUS }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    expect(replaceCalls.at(-1)?.url).toBe(
+      `/?a=${CORPUS.label}&b=${DIRTY.label}&mode=compare&cn=1`,
+    );
+  });
+
+  // The other half of the same rule. A capture finishing puts a new label at the
+  // head of the list, and a selection that moves under the cursor is worse than
+  // a default that has aged — so a pair still on offer is left alone.
+  it('keeps a pair that is still on offer when a new set arrives', () => {
+    const { rerender } = render(consoleWith());
+    fireEvent.change(screen.getByRole('combobox', { name: 'B' }), {
+      target: { value: CLEAN.label },
+    });
+    rerender(consoleWith({ corpus: CORPUS }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    expect(replaceCalls.at(-1)?.url).toBe(
+      `/?a=${CLEAN.label}&b=${CLEAN.label}&mode=compare&cn=1`,
+    );
+  });
+
+  // A URL change that scrolled the page would move the table the reviewer just
+  // picked from out from under them.
+  it('replaces the URL without scrolling', () => {
+    render(consoleWith());
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    expect(replaceCalls[0]?.options).toEqual({ scroll: false });
+  });
+});
+
+/**
+ * The press's second half (Board F2): where a job can start, `compare A ⇄ B`
+ * starts the comparison as well as pre-filling the form, and History comes into
+ * view when that job finishes.
+ *
+ * Driven through the template because the press is in one column and the panel
+ * that starts it is in the other — the context between them is the thing under
+ * test. The start never rides the URL, so none of this can be seen in
+ * `replaceCalls`: it is the POST or nothing.
+ */
+describe('the compare press', () => {
+  const STARTED: HistoryRecord = {
+    id: '2026-10-06T14-29-24Z-compare',
+    mode: 'compare',
+    label: `${CLEAN.label}__${DIRTY.label}`,
+    startedAt: '2026-10-06T14:29:24Z',
+    endedAt: null,
+    exitCode: null,
+    reportId: null,
+  };
+  const FINISHED: HistoryRecord = {
+    ...STARTED,
+    endedAt: '2026-10-06T14:29:25Z',
+    exitCode: 0,
+    reportId: STARTED.label,
+  };
+
+  /** The poll answers whatever `current` holds when it asks; the start answers
+   *  202 with {@link STARTED}. Everything else the right column asks on mount is
+   *  answered empty, so the only request a case can see is the one it causes. */
+  function stubRunner(initial: { running: boolean; job: HistoryRecord | null }) {
+    const state = { current: initial };
+    // `init` is declared so the calls are typed with it: the POST's body is the
+    // whole of what the start cases assert.
+    const fetchMock = vi.fn((url: string, _init?: { body?: string }) => {
+      const json = (body: unknown, status = 200) =>
+        Promise.resolve({
+          ok: status < 300,
+          status,
+          json: () => Promise.resolve(body),
+        });
+
+      if (url === '/api/jobs') return json({ job: STARTED }, 202);
+      if (url === '/api/jobs/current') {
+        return json({ isSample: false, reportExists: false, log: [], ...state.current });
+      }
+      if (url === '/api/env')
+        return json({ platform: 'linux', arch: 'x64', image: null });
+      if (url === '/api/stories') return json({ tiers: [] });
+
+      throw new Error(`unstubbed request to ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const posts = () =>
+      fetchMock.mock.calls
+        .filter(([url]) => url === '/api/jobs')
+        .map(([, init]) => JSON.parse(init?.body ?? 'null'));
+
+    return { state, posts };
+  }
+
+  const scrollIntoView = vi.fn();
+
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = scrollIntoView;
+  });
+
+  afterEach(() => {
+    scrollIntoView.mockClear();
+    vi.unstubAllGlobals();
+  });
+
+  it('starts the comparison of the chosen pair', async () => {
+    const { posts } = stubRunner({ running: false, job: null });
+    render(consoleWith());
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    await waitFor(() =>
+      expect(posts()).toEqual([
+        { mode: 'compare', baseline: CLEAN.label, candidate: DIRTY.label },
+      ]),
+    );
+  });
+
+  // The same `frozen` the prune reads: both consoles refuse every start, so the
+  // press does what it always did there and nothing more.
+  it.each([
+    ['a sample console', { isSample: true }],
+    ['a deployed console', { isLocal: false }],
+  ])('only pre-fills on %s', async (_, frozen) => {
+    const { posts } = stubRunner({ running: false, job: null });
+    render(consoleWith(frozen));
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    expect(replaceCalls).toHaveLength(1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(posts()).toEqual([]);
+  });
+
+  // The lock would refuse a second start anyway; the press does not ask, because
+  // its refusal would flash beside D1's alert for a pre-fill that already landed.
+  it('only pre-fills while a job is running', async () => {
+    const { posts } = stubRunner({ running: true, job: STARTED });
+    render(consoleWith());
+    await screen.findByText(/follow the running job below/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    expect(replaceCalls).toHaveLength(1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(posts()).toEqual([]);
+  });
+
+  it('brings History into view when the job it started finishes', async () => {
+    const { state } = stubRunner({ running: false, job: null });
+    render(consoleWith());
+
+    state.current = { running: false, job: FINISHED };
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById(HISTORY_ANCHOR));
+  });
+
+  // The poll reports the LAST run while nothing is running, so the previous
+  // job's finished record is what it answers until the new one replaces it.
+  // Scrolling on "a job finished" would jump before this one had started.
+  it('does not bring History into view for a job it did not start', async () => {
+    const { state, posts } = stubRunner({ running: false, job: RUN });
+    render(consoleWith());
+
+    state.current = { running: true, job: STARTED };
+    fireEvent.click(screen.getByRole('button', { name: 'compare A ⇄ B' }));
+
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+});
+
+describe('the retention control', () => {
+  it('offers a keep-latest count and a prune button', () => {
+    render(consoleWith());
+
+    expect(screen.getByRole('spinbutton', { name: 'keep latest' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'prune the rest' })).toBeDefined();
+  });
+
+  /**
+   * Gone entirely off localhost, control and count together.
+   *
+   * The deletes lose a button and keep their row; this loses the whole control,
+   * because a keep-latest number with no prune behind it states a retention
+   * policy the console cannot carry out. `POST /api/prune` refuses the request,
+   * and this is the only bulk destruction here — one call clears everything past
+   * the number.
+   */
+  it('is absent on a console nobody is running locally', () => {
+    render(consoleWith({ isLocal: false }));
+
+    expect(screen.queryByRole('spinbutton', { name: 'keep latest' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'prune the rest' })).toBeNull();
+  });
+
+  /** Same on a local console serving the fixtures: `POST /api/prune` refuses it
+   *  with `SAMPLE_DATA`, and pruning what a repo committed is not a thing this
+   *  console does. */
+  it('is absent on a local console showing the committed fixtures', () => {
+    render(consoleWith({ isSample: true }));
+
+    expect(screen.queryByRole('spinbutton', { name: 'keep latest' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'prune the rest' })).toBeNull();
+  });
+});
+
+describe('the history panel', () => {
+  it('names its table, so the page can hold more than one', () => {
+    render(consoleWith());
+
+    expect(table('History')).toBeDefined();
+  });
+
+  // The acceptance scenario: "the history lists each run with its outcome, exit
+  // code and duration".
+  it('lists a run with its outcome, exit code and duration', () => {
+    render(consoleWith({ history: [RUN] }));
+
+    const row = firstRowOf('History');
+
+    expect(cellsOf(row)).toEqual([
+      'succeeded (diffs)',
+      'compare',
+      '2026-08-17 10:00:00',
+      '1',
+      '1m 35s',
+      'view',
+    ]);
+  });
+
+  /**
+   * The stored instant, kept where a reviewer can still reach it.
+   *
+   * The cell is on the reader's clock, so `10:00:00` here and `08:00:00` in
+   * `history.json` are the same moment — and the `title` is the only thing on
+   * the page that says so. Asserted because `cellsOf` reads `textContent` and
+   * would not notice the tooltip going missing, which would leave the absolute
+   * moment unrecoverable from the console.
+   */
+  it('keeps the stored UTC instant in the stamp cell title', () => {
+    render(consoleWith({ history: [RUN] }));
+
+    const [, , started] = within(firstRowOf('History')).getAllByRole('cell');
+
+    expect(started?.getAttribute('title')).toBe(RUN.startedAt);
+    expect(started?.textContent).toBe('2026-08-17 10:00:00');
+  });
+
+  // A run the container went away under: lib/jobs.ts keeps the nulls rather
+  // than inventing a verdict, and the table has to say so rather than show a 0.
+  it('reports a run that never finished as interrupted, with nothing to show', () => {
+    render(consoleWith({ history: [INTERRUPTED] }));
+
+    const row = firstRowOf('History');
+
+    expect(cellsOf(row)).toEqual([
+      'interrupted',
+      'capture',
+      '2026-08-11 10:15:04',
+      '—',
+      '—',
+      '',
+    ]);
+  });
+
+  /**
+   * The same record as INTERRUPTED, told apart by the lock and nothing else.
+   *
+   * That is the whole point: `startJob` writes the row with `endedAt`,
+   * `exitCode` and `reportId` all null and only the end of the job patches
+   * them, so on disk a live job and one the container went away under are the
+   * same three nulls. The table drew both as `interrupted` — beside a CURRENT
+   * JOB region reading `running`.
+   */
+  it('reports the row the lock is holding as running, with nothing to show yet', () => {
+    render(consoleWith({ history: [INTERRUPTED], runningId: INTERRUPTED.id }));
+
+    expect(cellsOf(firstRowOf('History'))).toEqual([
+      'running',
+      'capture',
+      '2026-08-11 10:15:04',
+      '—',
+      '—',
+      '',
+    ]);
+  });
+
+  // The lock naming a row that already carries a verdict: `currentJob` reads the
+  // lock and then the history, so a job that finishes between those two reads
+  // arrives here as both. The exit code wins — a row saying `running` beside
+  // `exit 1` is the disagreement lib/outcome.ts exists to prevent.
+  it('reports a row that already has its exit code as what it came to', () => {
+    render(consoleWith({ history: [RUN], runningId: RUN.id }));
+
+    expect(cellsOf(firstRowOf('History'))[0]).toBe('succeeded (diffs)');
+  });
+
+  it('links a run that produced a report into it', () => {
+    render(consoleWith({ history: [RUN] }));
+
+    const view = screen.getByRole('link', { name: 'view' });
+
+    expect(view.getAttribute('href')).toBe(`/report/${RUN.reportId}`);
+  });
+
+  /**
+   * The row that outlived its report.
+   *
+   * History is append-only and `removeReport` deletes a tree without touching
+   * it, so deleting a report leaves every run that produced it still naming it.
+   * The cell used to link on the id alone, and this console shipped showing
+   * `reports (1)` beside a history column of `view` links into 404s — one per
+   * comparison ever deleted.
+   */
+  it('offers no link on a run whose report has since been deleted', () => {
+    render(consoleWith({ history: [RUN], reports: [] }));
+
+    expect(screen.queryByRole('link', { name: 'view' })).toBeNull();
+    // The row itself stays: what ran is still what ran, and only the way into
+    // a report that is gone is withdrawn.
+    expect(cellsOf(firstRowOf('History'))[0]).toBe('succeeded (diffs)');
+  });
+
+  it('shows an empty state instead of a table when nothing has run', () => {
+    render(consoleWith({ history: [] }));
+
+    expect(screen.queryByRole('table', { name: 'History' })).toBeNull();
+    expect(screen.getByText(/nothing has run yet/i)).toBeDefined();
+  });
+});
+
+describe('the reports panel', () => {
+  it('names its table, so the page can hold more than one', () => {
+    render(consoleWith());
+
+    expect(table('Reports')).toBeDefined();
+  });
+
+  it('links each named comparison into its report', () => {
+    render(consoleWith());
+
+    const link = screen.getByRole('link', { name: REPORT.id });
+
+    expect(link.getAttribute('href')).toBe(`/report/${REPORT.id}`);
+  });
+
+  // The date a comparison was written is the run's, not the file's: history is
+  // what knows when the differ finished.
+  it('dates a report from the run that produced it', () => {
+    render(consoleWith());
+
+    const row = firstRowOf('Reports');
+
+    expect(cellsOf(row)).toEqual([REPORT.id, '2026-08-17', REPORT_BUCKETS, 'delete']);
+  });
+
+  /**
+   * Absent, not disabled, off localhost.
+   *
+   * The route refuses the request anyway — a deployed console pointed at a real
+   * data directory must not let a visitor destroy the record of every
+   * comparison on it — so a button here would be a red control whose only
+   * outcome is a refusal, which invites a reviewer to look for the way to
+   * enable it. The run panel keeps the same rule one column over.
+   */
+  it('draws no delete on a console nobody is running locally', () => {
+    render(consoleWith({ isLocal: false }));
+
+    const row = firstRowOf('Reports');
+
+    expect(cellsOf(row)).toEqual([REPORT.id, '2026-08-17', REPORT_BUCKETS, '']);
+  });
+
+  /** And on a local console with no data directory behind it, for the same
+   *  reason the sets table draws none: `DELETE /api/reports/[id]` refuses the
+   *  committed fixtures with `SAMPLE_DATA`. */
+  it('draws no delete on a local console showing the committed fixtures', () => {
+    render(consoleWith({ isSample: true }));
+
+    expect(cellsOf(firstRowOf('Reports'))).toEqual([
+      REPORT.id,
+      '2026-08-17',
+      REPORT_BUCKETS,
+      '',
+    ]);
+  });
+
+  it('shows how many variants fell in each bucket', () => {
+    render(consoleWith());
+
+    const chips = within(firstRowOf('Reports')).getByRole('group', { name: 'Buckets' });
+
+    expect(within(chips).getByRole('button', { name: 'changed' }).textContent).toBe(
+      'changed6',
+    );
+  });
+
+  it('opens the report filtered to the bucket a chip names', () => {
+    render(consoleWith());
+    const chips = within(firstRowOf('Reports')).getByRole('group', { name: 'Buckets' });
+
+    fireEvent.click(within(chips).getByRole('button', { name: 'changed' }));
+
+    expect(pushCalls).toEqual([`/report/${REPORT.id}?bucket=changed`]);
+  });
+
+  it('opens the whole report from the total chip', () => {
+    render(consoleWith());
+    const chips = within(firstRowOf('Reports')).getByRole('group', { name: 'Buckets' });
+
+    fireEvent.click(within(chips).getByRole('button', { name: 'total' }));
+
+    expect(pushCalls).toEqual([`/report/${REPORT.id}`]);
+  });
+
+  /** Reading a report changes nothing, so the chips stay where the delete goes. */
+  it('keeps the chips on a console nobody is running locally', () => {
+    render(consoleWith({ isLocal: false }));
+
+    const chips = within(firstRowOf('Reports')).getByRole('group', { name: 'Buckets' });
+
+    expect(within(chips).getAllByRole('button')).toHaveLength(7);
+  });
+
+  // Regression, 18 Oct 2026: reports were ordered by id alone, so a `main-…`
+  // report with no run in this history sat above every `baselines__…` one,
+  // today's included, because "m" sorts after "b".
+  it('lists dated reports newest first, and the undated ones after them', () => {
+    const dated: ReportListEntry = { ...REPORT, id: 'baselines__main-2026-10-18-3' };
+    const newer: ReportListEntry = { ...REPORT, id: 'baselines__main-2026-10-19' };
+    const runOf = (id: string, endedAt: string): HistoryRecord => ({
+      ...RUN,
+      id: `${endedAt}-compare`,
+      label: id,
+      endedAt,
+      reportId: id,
+    });
+
+    render(
+      consoleWith({
+        reports: [REPORT, dated, newer],
+        history: [
+          runOf(newer.id, '2026-10-19T09:00:00Z'),
+          runOf(dated.id, '2026-10-18T09:00:00Z'),
+        ],
+      }),
+    );
+
+    expect(
+      within(table('Reports'))
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([newer.id, dated.id, REPORT.id]);
+  });
+
+  it('has no date for a report no run in this history claims', () => {
+    render(consoleWith({ history: [] }));
+
+    const row = firstRowOf('Reports');
+
+    expect(cellsOf(row)).toEqual([REPORT.id, '—', REPORT_BUCKETS, 'delete']);
+  });
+
+  it('offers a delete button per report', () => {
+    render(consoleWith());
+
+    const deletes = within(table('Reports')).getAllByRole('button', { name: 'delete' });
+
+    expect(deletes).toHaveLength(1);
+  });
+
+  /**
+   * Live, and never immediate.
+   *
+   * This button was drawn disabled for as long as there was no route behind it,
+   * on the argument that a red control which takes the click and does nothing is
+   * indistinguishable from a delete that failed silently. There is a route now,
+   * and D2's rule takes over: a destructive action names what it is about to
+   * destroy and waits to be told again.
+   */
+  it('opens a confirmation naming the report rather than deleting on the click', () => {
+    render(consoleWith());
+
+    const [remove] = within(table('Reports')).getAllByRole('button', { name: 'delete' });
+    expect(remove).toHaveProperty('disabled', false);
+    fireEvent.click(remove as HTMLElement);
+
+    const dialog = screen.getByRole('dialog', { name: 'Confirm deletion' });
+    expect(dialog.textContent).toContain(REPORT.id);
+    // The other half of the promise the sets dialog makes in reverse: neither
+    // deletion cascades into the other.
+    expect(dialog.textContent).toMatch(/capture sets it compared stay/i);
+  });
+
+  it('shows an empty state instead of a table when nothing has been compared', () => {
+    render(consoleWith({ reports: [] }));
+
+    expect(screen.queryByRole('table', { name: 'Reports' })).toBeNull();
+    expect(screen.getByText(/compare two capture sets/i)).toBeDefined();
+  });
+});
+
+/**
+ * The one thing the table primitive has to get right: below 768 px the rows
+ * reflow to cards, which changes `display` on native table elements — and a
+ * browser strips the implicit table/row/cell roles the moment a `<table>` stops
+ * being `display: table`. The e2e contract queries those roles at 390 px, so
+ * every element states its role rather than inheriting one.
+ *
+ * jsdom resolves implicit roles too, so `getByRole` alone would pass vacuously
+ * here; the assertion is on the attribute.
+ */
+describe('the table roles', () => {
+  it('states the role of the table itself', () => {
+    render(consoleWith());
+
+    expect(table('Screenshot sets').getAttribute('role')).toBe('table');
+  });
+
+  it('states the role of both row groups', () => {
+    render(consoleWith());
+
+    const groups = within(table('Screenshot sets')).getAllByRole('rowgroup');
+
+    expect(groups.map((group) => group.getAttribute('role'))).toEqual([
+      'rowgroup',
+      'rowgroup',
+    ]);
+  });
+
+  it('states the role of every row', () => {
+    render(consoleWith());
+
+    const rows = within(table('Screenshot sets')).getAllByRole('row');
+
+    expect(rows.map((row) => row.getAttribute('role'))).toEqual(rows.map(() => 'row'));
+  });
+
+  it('states the role of every column header', () => {
+    render(consoleWith());
+
+    const headers = within(table('Screenshot sets')).getAllByRole('columnheader');
+
+    expect(headers.map((header) => header.getAttribute('role'))).toEqual(
+      headers.map(() => 'columnheader'),
+    );
+  });
+
+  it('states the role of every cell', () => {
+    render(consoleWith());
+
+    const cells = within(table('Screenshot sets')).getAllByRole('cell');
+
+    expect(cells.map((cell) => cell.getAttribute('role'))).toEqual(
+      cells.map(() => 'cell'),
+    );
+  });
+
+  // The header row is what a reflowed card's per-cell label is read from, so it
+  // is hidden with the clip-rect pattern rather than `display: none`, which
+  // would take it out of the accessibility tree along with its roles.
+  it('keeps the header row in the document', () => {
+    render(consoleWith());
+
+    const [head] = groupsOf('Screenshot sets');
+
+    expect(within(head).getAllByRole('columnheader')).toHaveLength(7);
+  });
+});
+
+/**
+ * Figures that line up column-wise. A structural class rather than an
+ * appearance assertion: the column declares itself numeric and the cell carries
+ * the hook, which is what a reviewer comparing two story counts down a column
+ * depends on. What the hook draws is the differ's.
+ */
+describe('the numeric cells', () => {
+  const NUMERIC: [string, string][] = [
+    // The figure's own text node — the clipped unit beside it is a sibling
+    // element, which `getByText` does not fold in.
+    ['Screenshot sets', '106'],
+    ['Screenshot sets', '95.5 MB'],
+    ['History', '1'],
+    ['History', '1m 35s'],
+  ];
+
+  it.each(NUMERIC)('lines up %s’s %s column', (name, text) => {
+    render(consoleWith({ sets: [CLEAN], history: [RUN] }));
+
+    const cell = within(table(name)).getByText(text);
+
+    expect(cell.className).toContain('ds-table__cell--numeric');
+  });
+});
+
+/**
+ * The committed corpus, drawn above the sets this instance captured.
+ *
+ * Above and outside the table: the table's empty state says this instance has
+ * captured nothing yet, and the corpus is exactly a thing it did not capture. The
+ * count in the panel title means captured sets, and only those.
+ */
+describe('the canonical corpus', () => {
+  it('is absent when there is no checkout to read one from', () => {
+    render(consoleWith());
+
+    expect(screen.queryByRole('note', { name: 'canonical corpus' })).toBeNull();
+  });
+
+  it('names the commit that accepted it, and what it holds', () => {
+    render(consoleWith({ corpus: CORPUS }));
+
+    const region = screen.getByRole('note', { name: 'canonical corpus' }).parentElement
+      ?.parentElement;
+
+    expect(region?.textContent).toContain('8b95e14');
+    expect(region?.textContent).toContain('2026-08-18');
+    expect(region?.textContent).toContain('130');
+    expect(region?.textContent).toContain('1.7 MB');
+  });
+
+  // Present and disabled rather than absent: the console can never remove this —
+  // `DELETE /api/sets/baselines` refuses with the reason — and every capture set
+  // below carries the button, so no button at all would read as an omission.
+  it('offers a delete that cannot be pressed', () => {
+    render(consoleWith({ corpus: CORPUS }));
+
+    const [first] = screen.getAllByRole('button', { name: 'delete' });
+
+    expect(first).toHaveProperty('disabled', true);
+  });
+
+  // What it is there for. A reviewer who has just captured is asking what their
+  // shots did to the corpus, so it heads both pickers.
+  it('is the first thing either compare picker offers', () => {
+    render(consoleWith({ corpus: CORPUS }));
+
+    for (const name of ['A', 'B']) {
+      const options = [...screen.getByRole('combobox', { name }).children];
+      expect(options[0]?.textContent).toBe('baselines');
+    }
+  });
+
+  // The retention control prunes what this instance accumulated. The corpus is
+  // not prunable — the delete route refuses it by name — so it is not offered.
+  it('is not something retention can prune', () => {
+    render(consoleWith({ corpus: CORPUS }));
+
+    expect(screen.getByRole('table', { name: 'Screenshot sets' })).toBeDefined();
+    expect(screen.getByRole('spinbutton', { name: 'keep latest' })).toBeDefined();
+  });
+
+  // The count in the panel title, and the rows under it, are captured sets — the
+  // corpus adding to either would make one number mean two things.
+  it('does not become a row in the screenshot sets table', () => {
+    render(consoleWith({ corpus: CORPUS }));
+
+    const rows = screen
+      .getByRole('table', { name: 'Screenshot sets' })
+      .querySelectorAll('tbody tr');
+
+    expect(rows).toHaveLength(2);
+  });
+});

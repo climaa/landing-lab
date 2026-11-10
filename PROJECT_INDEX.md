@@ -1,0 +1,178 @@
+# Project Index: acceptance-gate
+
+Version 1.8.0 · generated 2026-11-05 (regenerate with `/sc:index-repo` — a stale date here
+means the index needs a refresh)
+
+## 📁 Project Structure
+
+```
+.sandcastle/           the autonomous orchestrator (public, self-tested)
+  main.mts             serial issue loop: plan → implement → review → merge
+  sandcastle-*.mts     27 modules: config · agent profiles · model overrides · lifecycle ·
+                       merge · merge branch-line · run-issue · stranded-branches ·
+                       worktree safety · worktree sandbox · build-verify · git ·
+                       git-parse · git-probe · guard-phase · image freshness ·
+                       issue-pipeline · issue-ref · no-op issues · plan-eligibility ·
+                       plan-parse · pr-queue (+ gh) · sandbox hooks · turbo cache ·
+                       variables · orchestrator
+  agent-docs/          the four phase prompts + CODING_STANDARDS.md
+  __tests__/           49 hermetic vitest files (817 tests) guarding the contracts
+apps/
+  blog/                Next.js 16 App Router + MDX (English) — index (paged four posts
+                       at a time, each page at its own address), post, tag, about,
+                       changelog (the GitHub releases, fetched at build time, each with
+                       its own giscus conversation), RSS, sitemap, robots.txt, OG
+                       images; Cache Components + Partial Prefetching on;
+                       web analytics on the production deployment only; Bugsink error
+                       reporting live in both realms on the production deployment,
+                       inert anywhere the DSN is unset
+  storybook/           Storybook 10 + nextjs-vite — 35 stories, 19 docs pages
+  e2e/                 playwright-bdd — 87 acceptance scenarios across the blog and
+                       two seeded visual-diff worlds (:3200/:3201), plus a two-scenario
+                       local lane that runs against your own tree
+  visual-diff-ui/      Next.js 16 console over the differ — zod-validated read path,
+                       locked job runner + guarded mutations, sample fixtures,
+                       the dashboard's sets/reports/history tables — a report row
+                       carries its bucket chips, each opening the report filtered
+                       to it, and a set repeating an older set's sha is marked
+                       `same sha` — the run
+                       panel with its live log, current job and accept gate,
+                       the report's tier sections, review loop and a11y
+                       treatment, the three-up viewer and comparison modal, the
+                       set viewer at `/set/[label]` — every screenshot grouped by
+                       story under its tier, at its own ratio, behind a pinned
+                       theme/viewport filter bar that hydrates nothing;
+                       a comparison is a link you can send, read beside its
+                       design board with the token ledger's spacing readings
+                       named in design-token terms; a set's screenshot opens in
+                       a shot view on its story's tile of the board — synced,
+                       cropped, overlaid (with a difference blend and a layer
+                       nudge) and magnified through PanZoom; the overlay's
+                       settings, a filtered set and a compare pair are links,
+                       and a report can be deleted from its own page;
+                       every browser request bounded at 30 s (`lib/network.ts`), so
+                       a stalled link fails with a sentence instead of hanging;
+                       web analytics on the production deployment only; Bugsink error
+                       reporting live in both realms on the production deployment,
+                       inert anywhere the DSN is unset
+  manual/              Next.js 16 — the console's end-user manual: three pages
+                       (console, report, sample) parsed at build time from the
+                       acceptance suite's own `.feature` files, so a scenario added
+                       or deleted flows straight to the published page rather than
+                       drifting from it; page views tracked on the same terms as
+                       the blog and the console
+packages/
+  logger/              the shared error/warn/info logger: silent in production, and
+                       `error()` always forwards to a reporter — with the Bugsink
+                       adapter behind `@lab/logger/bugsink`, inert until a DSN exists
+  ui/                  design system: tokens.css + 31 components in 4 tiers
+                       (17 atoms · 7 molecules · 5 organisms · 2 templates); every
+                       one storied but Stack, the layout primitive with nothing
+                       of its own to capture
+  visual-diff/         the self-built visual-regression CLI + 286 committed baselines;
+                       a console capture records a token ledger beside every
+                       screenshot, each spacing reading classified against the
+                       design-token scale
+  tsconfig/            shared TS configs
+designs/               <stem>.pen per board (Pencil source) + exports/*.png + template/
+scripts/               gate/ (the gate, run by `.husky/pre-push`) · complexity-gate.mjs
+                       (the health gate) · index-integrity.mjs (this file, checked
+                       against the repo it describes) · board-scale-integrity.mjs ·
+                       apply-ruleset.mjs
+.claude/skills/        four committed Next.js agent skills (+ PROVENANCE.md)
+.github/               pr.yml (the gate until #580, now disabled) · changelog-deploy.yml + changelog-check.yml
+                       (the release → /changelog edge, and the alarm that reads the
+                       deployed page back) · dependabot.yml · auto-merge · rulesets/ ·
+                       CODEOWNERS · SECURITY.md · issue and PR templates
+```
+
+## 🚀 Entry Points
+
+- Pipeline: `pnpm sandcastle` → `.sandcastle/main.mts` (dispatch: open issues by repo owner)
+- Blog: `pnpm dev` → `apps/blog` on :3000
+- Storybook: `pnpm --filter @lab/storybook dev` on :6006
+- Visual-diff console: `pnpm --filter @lab/visual-diff-ui dev` on :3300 — points `VISUAL_DIFF_DATA_DIR` at a gitignored `.visual-diff/` at the repo root and seeds it, so a local console is live rather than in sample mode. `capture`/`run` build Storybook on the host, then run the differ inside the pinned container (`lib/docker.ts` + `scripts/capture-set.mjs`), so **Docker must be running** — the panel says so and disables the button when it is not. Jobs are refused off localhost (`lib/local.ts`, and again in `POST /api/jobs`); `next start` sets no variable, so an instance without one serves the committed sample data
+- Acceptance suite: `pnpm turbo run e2e` (builds the blog and the visual-diff console first, seeds the three worlds, then runs the scenarios)
+- Manual: `pnpm --filter @lab/manual dev` on :3400
+- Visual diff: `pnpm visual-diff` / `pnpm visual-diff:accept`
+- Gate: `pnpm gate` (`scripts/gate/`), run by `.husky/pre-push` before every push; `pnpm gate --tier full` adds visual-diff in the pinned container. The per-PR workflows (`pr.yml`) are disabled on GitHub since #580
+- Orchestrator tests: `pnpm test:sandcastle` → `vitest.sandcastle.config.mts`
+
+## 📦 Core Modules
+
+- **`.sandcastle/sandcastle-config.mts`** — constants: `BASE_BRANCH=main`, `gh` preflight, turbo credentials read from the repo-root `.env` only (never `process.env`), with the expected team derived from `.turbo/config.json` → mismatch or missing link disables the cache
+- **`.sandcastle/sandcastle-model-overrides.mts`** — `sc:<role>:<model|effort:*>` label grammar; resolution `PROFILES < SC_* env < issue label`
+- **`.sandcastle/sandcastle-merge.mts`** — squash auto-merge flow; ~20-min poll window
+- **`.sandcastle/sandcastle-noop-issues.mts`** — a "nothing to do" outcome comments and stops; it deliberately never closes the issue, because that would hide a misread task
+- **`packages/ui/src/tokens.css`** — the single visual source of truth; light = parchment/terracotta, dark = terminal lime; theme switch is `[data-theme]`, never `prefers-color-scheme`
+- **`packages/visual-diff/src/policy.mjs`** — the one literal: tiers, themes, viewports, capture modes and the pinned `HOST` fingerprint, consumed identically by capture, Storybook's preview decorator and the layering lint
+- **`apps/blog/lib/posts.ts`** — MDX read, Zod-validated frontmatter, reading time
+- **`scripts/complexity-gate.mjs`** — cognitive-complexity ceiling of 20 per function; workspace mode for turbo, `--scope` mode for `.sandcastle/`
+- `scripts/vitest-control-scan.mjs` — `health:check` step: no `.skip`/`.todo`/`.only`/`.skipIf`/`.runIf` Vitest call in a unit test without a same-line `// reason:`
+- `scripts/release-age.mjs` — `health:check` step: `pnpm-workspace.yaml` writes `minimumReleaseAge` at 4320 or more (three days; pnpm 11's default is 1440)
+- `scripts/vitest-timeout-scan.mjs` — `health:check` step: every `vitest.config.*` (and the root's `vitest.sandcastle.config.mts`) imports the preset from `vitest.shared.mjs` and writes no `testTimeout`/`hookTimeout` below its 20 s floor
+
+## 🔧 Configuration
+
+- `turbo.json` — `build`/`lint`/`typecheck`/`test` (+`dependsOn: ["^build"]`), `e2e` (dependsOn `@lab/blog#build` and `@lab/visual-diff-ui#build`, uncached), `health` (whose `inputs` include `$TURBO_ROOT$/scripts/complexity-gate.mjs`, so editing the gate script busts every cached result), `dev`, `clean`. `build.env` is `VERCEL_ENV`, `NEXT_PUBLIC_BUGSINK_DSN`, `BLOG_RELEASES_FIXTURE` and `GITHUB_TOKEN` — the values a build reads, so a fixture build and a real one never share a cache entry. `BUGSINK_DSN` is deliberately absent: the server reads it per request, so changing it must not invalidate a build
+- `vitest.shared.mjs` — the vitest preset every config extends with `mergeConfig`: `testTimeout` and `hookTimeout` at 20 s, a floor a workspace may raise and never lower. Named in the `test` tasks' turbo `inputs`, so editing it re-runs every suite. The gate's `test` check runs at `--concurrency=50%` of the logical processors, or the exported `TURBO_CONCURRENCY`
+- `pnpm-workspace.yaml` — apps/* + packages/*; `allowBuilds` for sharp, unrs-resolver; `minimumReleaseAge: 4320`, so a dependency bump must name a version at least three days old
+- `package.json` — pnpm 11.20.0 pinned (sha512), Node `>=22.22.2 <23`, turbo ^2.11.7. `@types/node` is deliberately held on the `^22` line: it describes the runtime `engines` pins and `.sandcastle/Dockerfile` (`node:22-bookworm`) runs, so a newer major would type built-ins that do not exist here. It moves when the runtime moves, not when `ncu` says so
+- `.github/rulesets/main.json` — the branch ruleset as committed JSON: PR required, squash-only, `gate` the sole required status check, no bypass actors. Since #580 the applied ruleset requires no status check, so this file no longer matches what `main` enforces
+- `.gitattributes` — `designs/*.pen` binary
+- Exact pins that are never bot-bumped: `@playwright/test` and `playwright` at `1.62.1`, matched to the `mcr.microsoft.com/playwright:v1.62.1-noble` capture container
+
+## 📚 Documentation
+
+- `README.md` — thesis, status table, the autonomous loop
+- `AGENTS.md` — the routing table agents read first
+- `RELEASING.md` — the eleven manifests, the index/README refresh that belongs in the same PR, and the four-part shape every release body has carried since 1.0.0
+- `.sandcastle/agent-docs/CODING_STANDARDS.md` — the review contract (testing conventions, scope discipline)
+- `apps/storybook/src/docs/` — the published written half: System Design, Atomic Design, QA, DevOps, Skills
+- `packages/visual-diff/README.md` — capture matrix, determinism controls, exit codes, and why the job never joins `gate.needs`
+- `apps/e2e/README.md` — the three-layer split, the tag→project matrix and the three visual-diff worlds
+- `designs/exports/` — one PNG per board (`designs/STANDARD.md`): `00-foundations`, the tier boards `01-atoms`–`04-templates` and `05-screens` (normative inventory, one tile per story, each with a `.tiles.json` keyed by variant key; `05-screens` draws the console's own pages, paged as `05-screens-1`–`05-screens-4`), `05-pages`, `06-flows-decisions`, `x-console-components`, `x-visual-diff-pages` (console `/` and `/report/[id]`)
+
+## 🧪 Tests
+
+- Orchestrator hermetic suite: 49 files / 817 tests (prompt contracts, merge flow, override grammar, worktree safety, provenance guard)
+- Workspace suites, all in the `test` gate job: `packages/ui` 39 files / 649 tests (70% coverage floor), `apps/blog` 28 / 578 (575 passed, 3 skipped — one per draft post), `packages/visual-diff` 11 / 505, `apps/storybook` 8 / 264, `apps/visual-diff-ui` 82 / 1399 (floors 93/87/92/94), `packages/logger` 3 / 32, `apps/manual` 10 / 118, `packages/links` 1 / 10
+- `apps/e2e`: 87 acceptance scenarios across smoke, blog, the changelog's release conversations, /about, axe a11y, the visual-diff console, sample mode, the report and its accessibility treatment — in `gate.needs`, blocking. `EXPECTED_SCENARIOS` in `apps/e2e/scripts/suite-integrity.mjs` is the count that must agree. A second lane, `features/local/`, is two scenarios that write to your own tree and clean up after themselves — one captures, compares, reviews and accepts against your `.visual-diff`, the other proves the dev server reflects `apps/blog/content/posts` as it is, which no built app can claim (`EXPECTED_LOCAL_SCENARIOS`). It refuses to run under `CI` and gates nothing
+- `packages/visual-diff`: 286 committed baselines; the capture/compare job runs on every PR but is deliberately never in `gate.needs` (see `packages/visual-diff/README.md#ci-status`)
+
+## 🔗 Key Dependencies
+
+- `@ai-hero/sandcastle` 0.12.0 — sandbox engine under `.sandcastle/`
+- `next` ^16.4.0 / `react` ^19.3.0 — blog, storybook, the console and the manual
+- `storybook` 10 with `nextjs-vite` — the visual single source of truth
+- `dotenv` 18 — its own CLI wraps every root turbo script (`dotenv run -q --override --`); `dotenv-cli` is gone, because the two install one command
+- `playwright` 1.62.1 (exact) — acceptance suite and pixel capture
+- `turbo` ^2.11.7 — task graph + remote cache (team-ID-scoped)
+
+## 🧒 Child projects
+
+Private repositories seeded from this one. Each carries its own copy of the
+shared tooling under its own package scope — the visual-diff console
+(`apps/visual-diff-ui`), the differ (`packages/visual-diff`), the orchestrator
+(`.sandcastle/`) and the `packages/ui` scaffolding — next to an `apps/web` of its
+own. Their gate is a Husky `pre-push` hook, not Actions.
+
+| Repository               | Scope           |
+| ------------------------ | --------------- |
+| `climaa/mape-tournament` | `@mape/*`       |
+| `climaa/portafolio`      | `@portafolio/*` |
+| `climaa/trucutru`        | `@trucutru/*`   |
+| `climaa/jardinero-gerad` | `@grm/*`        |
+| `climaa/torn`            | `@torn/*`       |
+
+A change to that shared tooling here is ported to every child, one PR each, in
+the same pass — the copies drift otherwise, and a fix that reaches one console
+of five is a fix nobody can count on. A new child is added to this table when it
+is seeded, so the next port reaches it.
+
+## 📝 Quick Start
+
+1. `pnpm install`
+2. `pnpm lint && pnpm build && pnpm test && pnpm typecheck` — all green from the root
+3. `pnpm format:check && pnpm health:check` — the other two `checks` matrix legs
+4. `pnpm test:sandcastle` — the orchestrator's own contracts

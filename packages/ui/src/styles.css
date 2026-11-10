@@ -1,0 +1,56 @@
+/**
+ * @lab/ui — design system stylesheet.
+ * Import once, in each app’s root layout.
+ *
+ * A manifest, not a stylesheet: every rule lives beside the component that
+ * draws it, and this file states nothing but the order they arrive in. That
+ * order IS the cascade order — two overrides in the system beat the rule above
+ * them on source order alone, at equal specificity, so the list below is sorted
+ * by nothing and must not be re-sorted. `@import` may not follow a rule, which
+ * is why the reset and the shared utilities are sheets of their own rather than
+ * being written out here above the components.
+ *
+ * Every colour in every sheet resolves through a --color-* role from tokens.css
+ * — never a literal value, and never a raw palette step (those never leave
+ * tokens.css). The only colour keywords used are `transparent`, `none` and
+ * `inherit`: they name an absence rather than a palette value, so there is
+ * nothing to tokenize.
+ */
+
+@import './fonts.css';
+@import './tokens.css';
+@import './base.css';
+@import './utilities.css';
+
+/* First of the components: a role is the baseline every component and app sheet
+   below may restate at equal specificity, never the other way round. */
+@import './atoms/Text/Text.css';
+@import './atoms/Button/Button.css';
+@import './atoms/Link/Link.css';
+@import './atoms/Badge/Badge.css';
+@import './atoms/Tag/Tag.css';
+@import './atoms/ThemeToggle/ThemeToggle.css';
+@import './molecules/Card/Card.css';
+@import './molecules/PostMeta/PostMeta.css';
+@import './atoms/Prose/Prose.css';
+@import './molecules/CodeBlock/CodeBlock.css';
+@import './atoms/EmptyState/EmptyState.css';
+@import './atoms/Skeleton/Skeleton.css';
+@import './atoms/SkipLink/SkipLink.css';
+@import './organisms/SiteHeader/SiteHeader.css';
+@import './molecules/TagList/TagList.css';
+@import './molecules/StepList/StepList.css';
+@import './templates/PostTemplate/PostTemplate.css';
+@import './organisms/SiteFooter/SiteFooter.css';
+@import './molecules/PostCard/PostCard.css';
+@import './templates/BlogIndexTemplate/BlogIndexTemplate.css';
+@import './organisms/Table/Table.css';
+@import './atoms/BucketChip/BucketChip.css';
+@import './atoms/Thumbnail/Thumbnail.css';
+@import './organisms/Dialog/Dialog.css';
+@import './organisms/PanZoom/PanZoom.css';
+@import './atoms/TriStateCheckbox/TriStateCheckbox.css';
+@import './atoms/SegmentedControl/SegmentedControl.css';
+@import './atoms/IconButton/IconButton.css';
+@import './atoms/Spinner/Spinner.css';
+@import './molecules/Pagination/Pagination.css';

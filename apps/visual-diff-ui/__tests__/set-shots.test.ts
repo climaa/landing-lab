@@ -1,0 +1,529 @@
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import { readSetShots } from '../lib/set-shots';
+import {
+  filterCounts,
+  groupShots,
+  neighbourKeys,
+  parseShotName,
+  type SetShot,
+  sectionAxes,
+} from '../lib/set-view';
+
+/**
+ * What a screenshot set holds, read off its filenames and its PNG headers.
+ *
+ * The grouping is pure and is asserted from literal names: the ragged matrix,
+ * the tier order and the story order are facts about the data, and putting a
+ * filesystem behind them would only make the same assertions slower. The reader
+ * is exercised against a real temporary directory, because the parts worth
+ * proving there — a header that will not parse, a file that names no cell, a
+ * label with no directory — are all things only a real read can produce.
+ */
+
+const temporaryDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of temporaryDirs.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** Signature, chunk length, `IHDR`, width, height — the twenty-four bytes
+ *  `pngSize` reads, and nothing after them. A real capture carries pixels too;
+ *  nothing on this page reads them. */
+function pngBytes(width: number, height: number): Uint8Array {
+  const header = new Uint8Array(24);
+  header.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  header.set([0, 0, 0, 13], 8);
+  header.set([0x49, 0x48, 0x44, 0x52], 12);
+  new DataView(header.buffer).setUint32(16, width);
+  new DataView(header.buffer).setUint32(20, height);
+
+  return header;
+}
+
+function setDirWith(files: Record<string, Uint8Array | string>): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vd-set-'));
+  temporaryDirs.push(dir);
+  fs.mkdirSync(path.join(dir, 'sets', 'main-2026-08-17'), { recursive: true });
+
+  for (const [name, body] of Object.entries(files)) {
+    fs.writeFileSync(path.join(dir, 'sets', 'main-2026-08-17', name), body);
+  }
+
+  return dir;
+}
+
+const shot = (key: string, extra: Partial<SetShot> = {}): SetShot => {
+  const cell = parseShotName(`${key}.png`);
+  if (!cell) throw new Error(`not a variant key: ${key}`);
+
+  return { ...cell, bytes: 10, width: 1248, height: 25, ...extra };
+};
+
+describe('parseShotName', () => {
+  it('reads a filename back as the cell it names', () => {
+    const name = 'atoms__desktop__light__atoms-badge--accent.png';
+
+    const cell = parseShotName(name);
+
+    expect(cell).toMatchObject({
+      key: 'atoms__desktop__light__atoms-badge--accent',
+      file: name,
+      tier: 'atoms',
+      viewport: 'desktop',
+      theme: 'light',
+      storyId: 'atoms-badge--accent',
+    });
+  });
+
+  it('reads a mobile atom, which the tier rule alone would not allow', () => {
+    // `visual-diff:all-viewports` opts six stories past `TIER_VIEWPORTS`, and
+    // this shot really is in the committed corpus. A parser that re-derived the
+    // matrix from the tier would orphan it.
+    const cell = parseShotName('atoms__mobile__dark__atoms-prose--default.png');
+
+    expect(cell?.viewport).toBe('mobile');
+  });
+
+  it("reads a listed story's locale back from its filename", () => {
+    const cell = parseShotName(
+      'organisms__mobile__dark__en__organisms-siteheader--default.png',
+    );
+
+    expect(cell).toMatchObject({
+      viewport: 'mobile',
+      theme: 'dark',
+      locale: 'en',
+      storyId: 'organisms-siteheader--default',
+    });
+  });
+
+  it('gives a filename with no locale part no locale, as before the axis', () => {
+    const cell = parseShotName('atoms__desktop__light__atoms-badge--accent.png');
+
+    expect(cell).not.toHaveProperty('locale');
+  });
+
+  it.each([
+    ['a locale outside the policy list', 'atoms__desktop__light__xx__x--y.png'],
+    ['a file that is not a PNG', 'BASELINE_ENV.json'],
+    ['a name with too few segments', 'atoms__desktop__atoms-badge.png'],
+    ['a tier outside the matrix', 'pages__desktop__light__x--y.png'],
+    ['a viewport outside the matrix', 'atoms__watch__light__x--y.png'],
+  ])('refuses %s', (_case, name) => {
+    const cell = parseShotName(name);
+
+    expect(cell).toBeNull();
+  });
+});
+
+describe('neighbourKeys', () => {
+  // Shuffled on purpose: the order is the set page's, not the input's.
+  const sections = groupShots([
+    shot('atoms__desktop__dark__atoms-badge--danger'),
+    shot('atoms__desktop__light__atoms-badge--accent'),
+    shot('atoms__desktop__light__atoms-badge--danger'),
+    shot('atoms__desktop__dark__atoms-badge--accent'),
+  ]);
+  const ACCENT_LIGHT = 'atoms__desktop__light__atoms-badge--accent';
+  const ACCENT_DARK = 'atoms__desktop__dark__atoms-badge--accent';
+  const DANGER_LIGHT = 'atoms__desktop__light__atoms-badge--danger';
+  const DANGER_DARK = 'atoms__desktop__dark__atoms-badge--danger';
+
+  it('walks light, then dark, then the next story, as the set page draws them', () => {
+    const steps = [ACCENT_DARK, DANGER_LIGHT].map((key) => neighbourKeys(sections, key));
+
+    expect(steps).toEqual([
+      { prev: ACCENT_LIGHT, next: DANGER_LIGHT },
+      { prev: ACCENT_DARK, next: DANGER_DARK },
+    ]);
+  });
+
+  it('stops at either end rather than wrapping', () => {
+    const ends = [ACCENT_LIGHT, DANGER_DARK].map((key) => neighbourKeys(sections, key));
+
+    expect(ends).toEqual([{ next: ACCENT_DARK }, { prev: DANGER_LIGHT }]);
+  });
+
+  it('has no neighbours for a key the set does not hold', () => {
+    expect(neighbourKeys(sections, 'atoms__desktop__light__nope')).toEqual({});
+  });
+});
+
+describe('groupShots', () => {
+  it('groups a story and reports only the viewports it has', () => {
+    const shots = [
+      shot('atoms__desktop__light__atoms-badge--accent'),
+      shot('atoms__desktop__dark__atoms-badge--accent'),
+    ];
+
+    const [section] = groupShots(shots);
+
+    expect(section?.groups[0]).toMatchObject({
+      storyId: 'atoms-badge--accent',
+      viewports: ['desktop'],
+    });
+  });
+
+  it('reports both viewports for a story captured at both', () => {
+    const shots = [
+      'desktop__light',
+      'desktop__dark',
+      'mobile__light',
+      'mobile__dark',
+    ].map((cell) => shot(`organisms__${cell}__organisms-siteheader--default`));
+
+    const [section] = groupShots(shots);
+
+    expect(section?.groups[0]?.viewports).toEqual(['desktop', 'mobile']);
+  });
+
+  it('orders cells desktop before mobile and light before dark', () => {
+    const shots = [
+      'mobile__dark',
+      'desktop__dark',
+      'mobile__light',
+      'desktop__light',
+    ].map((cell) => shot(`organisms__${cell}__organisms-siteheader--default`));
+
+    const [section] = groupShots(shots);
+
+    expect(
+      section?.groups[0]?.shots.map((one) => `${one.viewport}/${one.theme}`),
+    ).toEqual(['desktop/light', 'desktop/dark', 'mobile/light', 'mobile/dark']);
+  });
+
+  it('orders sections by tier, innermost first, and drops the empty ones', () => {
+    const shots = [
+      shot('templates__desktop__light__templates-posttemplate--default'),
+      shot('atoms__desktop__light__atoms-badge--accent'),
+    ];
+
+    const sections = groupShots(shots);
+
+    expect(sections.map(({ section }) => section.key)).toEqual(['atoms', 'templates']);
+  });
+
+  /**
+   * A screen is filed under its app's section, after the design system's tiers
+   * and in the policy's order of apps — never under one `screens` heading that
+   * mixes products.
+   */
+  it("files screens shots under their app's section, after the tiers", () => {
+    const shots = [
+      shot('screens__mobile__dark__screens-visual-diff-ui-dashboard--sample'),
+      shot('atoms__desktop__light__atoms-badge--accent'),
+    ];
+
+    const sections = groupShots(shots);
+
+    expect(sections.map(({ section }) => section.label)).toEqual([
+      'atoms',
+      'Screens / Visual-diff-ui',
+    ]);
+  });
+
+  /** A shot that exists is a shot that is shown: a screen whose app the policy
+   *  does not name is filed under `other`, last, never dropped. */
+  it('files a screen of an app the policy does not name under other', () => {
+    const shots = [
+      shot('screens__mobile__dark__screens-reading--default'),
+      shot('screens__mobile__dark__screens-visual-diff-ui-dashboard--sample'),
+    ];
+
+    const sections = groupShots(shots);
+
+    expect(sections.map(({ section }) => section.label)).toEqual([
+      'Screens / Visual-diff-ui',
+      'Screens / Other',
+    ]);
+  });
+
+  it('counts stories and screenshots apart', () => {
+    const shots = [
+      shot('atoms__desktop__light__atoms-badge--accent'),
+      shot('atoms__desktop__dark__atoms-badge--accent'),
+      shot('atoms__desktop__light__atoms-badge--danger'),
+    ];
+
+    const [section] = groupShots(shots);
+
+    expect({ stories: section?.stories, shots: section?.shots }).toEqual({
+      stories: 2,
+      shots: 3,
+    });
+  });
+});
+
+describe('readSetShots', () => {
+  it('reads a set, measuring each shot from its PNG header', async () => {
+    const dir = setDirWith({
+      'atoms__desktop__light__atoms-badge--accent.png': pngBytes(1248, 25),
+    });
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect(shots?.sections[0]?.groups[0]?.shots[0]).toMatchObject({
+      width: 1248,
+      height: 25,
+    });
+  });
+
+  it('names a file that is not a shot rather than dropping it silently', async () => {
+    const dir = setDirWith({
+      'atoms__desktop__light__atoms-badge--accent.png': pngBytes(1248, 25),
+      'notes.txt': 'left here by a human',
+    });
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect(shots?.ignored).toEqual(['notes.txt']);
+  });
+
+  it('treats a token ledger beside its shot as a ledger, not as an ignored file', async () => {
+    const dir = setDirWith({
+      'atoms__desktop__light__atoms-badge--accent.png': pngBytes(1248, 25),
+      'atoms__desktop__light__atoms-badge--accent.ledger.json': '{"schema":1}',
+    });
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect({ count: shots?.shots, ignored: shots?.ignored }).toEqual({
+      count: 1,
+      ignored: [],
+    });
+  });
+
+  it('still names a ledger-looking file whose key is no variant', async () => {
+    const dir = setDirWith({
+      'atoms__desktop__light__atoms-badge--accent.png': pngBytes(1248, 25),
+      'not-a-key.ledger.json': '{}',
+    });
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect(shots?.ignored).toEqual(['not-a-key.ledger.json']);
+  });
+
+  it('treats BASELINE_ENV.json as the stamp it is, not as an unreadable file', async () => {
+    const dir = setDirWith({
+      'atoms__desktop__light__atoms-badge--accent.png': pngBytes(1248, 25),
+      'BASELINE_ENV.json': JSON.stringify({ platform: 'linux', chromium: '151' }),
+    });
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect({ ignored: shots?.ignored, env: shots?.env }).toEqual({
+      ignored: [],
+      env: { platform: 'linux', chromium: '151' },
+    });
+  });
+
+  it('reports null dimensions for a shot whose header will not parse', async () => {
+    // A corrupt file is a shot to draw as broken, never a page to take down.
+    const dir = setDirWith({
+      'atoms__desktop__light__atoms-badge--accent.png': 'not a png at all',
+    });
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect(shots?.sections[0]?.groups[0]?.shots[0]).toMatchObject({
+      width: null,
+      height: null,
+    });
+  });
+
+  /**
+   * There and unreadable is not the same as gone. A directory standing where a
+   * screenshot should be `stat`s fine and refuses to be read, which is the
+   * shape of a truncated capture or a half-written file — the shot is still on
+   * disk, so it is still counted and still drawn, with no size in its caption.
+   */
+  it('still shows a shot that is on disk but will not answer', async () => {
+    const dir = setDirWith({});
+    fs.mkdirSync(
+      path.join(
+        dir,
+        'sets',
+        'main-2026-08-17',
+        'atoms__desktop__light__atoms-badge--accent.png',
+      ),
+    );
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect({
+      count: shots?.shots,
+      first: shots?.sections[0]?.groups[0]?.shots[0],
+    }).toMatchObject({
+      count: 1,
+      first: { width: null, height: null },
+    });
+  });
+
+  /** Gone between the listing and the read, which a broken symlink reproduces
+   *  exactly. Nothing to show, so nothing is claimed — and it is not named as an
+   *  unreadable file either, because it named a cell perfectly well. */
+  it('drops a shot whose file is no longer there, without counting it', async () => {
+    const dir = setDirWith({
+      'atoms__desktop__light__atoms-badge--accent.png': pngBytes(1248, 25),
+    });
+    fs.symlinkSync(
+      path.join(dir, 'sets', 'main-2026-08-17', 'nothing-here.png'),
+      path.join(
+        dir,
+        'sets',
+        'main-2026-08-17',
+        'atoms__desktop__dark__atoms-badge--accent.png',
+      ),
+    );
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect({ count: shots?.shots, ignored: shots?.ignored }).toEqual({
+      count: 1,
+      ignored: [],
+    });
+  });
+
+  it('answers null for a label this instance holds no directory for', async () => {
+    const dir = setDirWith({});
+
+    const shots = await readSetShots(dir, null, 'never-captured');
+
+    expect(shots).toBeNull();
+  });
+
+  it('answers null for the corpus when there is no checkout behind it', async () => {
+    const dir = setDirWith({});
+
+    const shots = await readSetShots(dir, null, 'baselines');
+
+    expect(shots).toBeNull();
+  });
+
+  it('answers null for a directory holding no shots at all', async () => {
+    const dir = setDirWith({ 'notes.txt': 'nothing but this' });
+
+    const shots = await readSetShots(dir, null, 'main-2026-08-17');
+
+    expect(shots).toBeNull();
+  });
+});
+
+/**
+ * The nine answers the bar renders and CSS reveals one of.
+ *
+ * Precomputed because `:checked` can hide a screenshot but cannot count what is
+ * left, so the alternative was a client island on a page that deliberately has
+ * none.
+ */
+describe('filterCounts', () => {
+  const corpus = groupShots([
+    // Desktop-only, both themes — 37 of the corpus's atoms look like this.
+    shot('atoms__desktop__light__atoms-badge--accent'),
+    shot('atoms__desktop__dark__atoms-badge--accent'),
+    // All four cells — only 17 of 63 stories have a mobile screenshot.
+    shot('organisms__desktop__light__organisms-siteheader--default'),
+    shot('organisms__desktop__dark__organisms-siteheader--default'),
+    shot('organisms__mobile__light__organisms-siteheader--default'),
+    shot('organisms__mobile__dark__organisms-siteheader--default'),
+  ]);
+
+  it('counts everything when neither axis is narrowed', () => {
+    const counts = filterCounts(corpus);
+
+    expect(counts['both|both']).toEqual({ shots: 6, stories: 2 });
+  });
+
+  it('halves the screenshots but keeps every story when a theme is chosen', () => {
+    const counts = filterCounts(corpus);
+
+    expect(counts['dark|both']).toEqual({ shots: 3, stories: 2 });
+  });
+
+  /** The case the count exists for: a viewport filter drops whole stories, and a
+   *  page saying "2 stories" while showing one would be worse than saying
+   *  nothing. */
+  it('drops a story a viewport filter leaves with nothing', () => {
+    const counts = filterCounts(corpus);
+
+    expect(counts['both|mobile']).toEqual({ shots: 2, stories: 1 });
+  });
+
+  it('narrows on both axes at once', () => {
+    const counts = filterCounts(corpus);
+
+    expect(counts['light|mobile']).toEqual({ shots: 1, stories: 1 });
+  });
+
+  it('answers every cell of the matrix, so no choice renders a gap', () => {
+    const counts = filterCounts(corpus);
+
+    expect(Object.keys(counts)).toHaveLength(9);
+  });
+});
+
+/**
+ * What a tier holds, for the link that offers it.
+ *
+ * The jump link is the one part of the bar a filter can strand: the tier's own
+ * rules hide the section, and a link left pointing into a `display: none`
+ * heading is a press that does nothing while `:target` still marks it as the
+ * place you went. Unlike the filtering, this half IS markup, so it is asserted
+ * here rather than left to a browser pass.
+ */
+describe('sectionAxes', () => {
+  const section = (keys: readonly string[]) => {
+    const [only] = groupShots(keys.map((key) => shot(key)));
+    if (!only) throw new Error('every fixture here names one tier');
+
+    return only;
+  };
+
+  /** The case a partial set reaches: a capture run under a `--filter` can leave a
+   *  tier holding one viewport. The corpus does not — `visual-diff:all-viewports`
+   *  opts three atoms past the desktop-only default — so this is asserted from
+   *  literal names rather than from the real set, which cannot show it. */
+  it('reports only the viewports a tier was really captured at', () => {
+    const axes = sectionAxes(
+      section([
+        'atoms__desktop__light__atoms-badge--accent',
+        'atoms__desktop__dark__atoms-badge--accent',
+      ]),
+    );
+
+    expect(axes).toEqual({ themes: ['light', 'dark'], viewports: ['desktop'] });
+  });
+
+  it('reports both viewports for a tier that has them', () => {
+    const axes = sectionAxes(
+      section([
+        'organisms__desktop__light__organisms-siteheader--default',
+        'organisms__mobile__light__organisms-siteheader--default',
+      ]),
+    );
+
+    expect(axes.viewports).toEqual(['desktop', 'mobile']);
+    expect(axes.themes).toEqual(['light']);
+  });
+
+  /** Capture order is not read order: the page draws desktop before mobile and
+   *  light before dark however `readdir` returned them, and the attribute a
+   *  stylesheet matches on must not depend on that either. */
+  it('answers in the capture order, never the order the files came back in', () => {
+    const axes = sectionAxes(
+      section([
+        'templates__mobile__dark__templates-post--default',
+        'templates__desktop__light__templates-post--default',
+      ]),
+    );
+
+    expect(axes.themes).toEqual(['light', 'dark']);
+    expect(axes.viewports).toEqual(['desktop', 'mobile']);
+  });
+});

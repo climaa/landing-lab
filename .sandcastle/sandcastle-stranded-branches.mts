@@ -1,0 +1,271 @@
+// Stranded-branch rescue — finds sandcastle/* branches with commits ahead of
+// BASE_BRANCH that weren't part of the current plan (typically because a
+// prior merge phase crashed or was interrupted), build-verifies them, and
+// hands back only the ones safe to merge.
+//
+// "Commits ahead" is necessary but not sufficient: a branch whose commits
+// cancel out is ahead of base and has nothing to land, and every filter here
+// used to wave it through. See strandedDisposition (sandcastle-noop-issues.mts).
+import { execSync } from 'node:child_process';
+import { createWorktreeSandbox } from './sandcastle-worktree-sandbox.mts';
+import { parseOverrideLabels } from './sandcastle-model-overrides.mts';
+import { isDocsOnlyDiff, runBuildVerify } from './sandcastle-build-verify.mts';
+import {
+  type StrandedDisposition,
+  HOLD_LABEL,
+  NOOP_LABEL,
+  hasHoldLabel,
+  noOpIssueComment,
+  strandedDisposition,
+} from './sandcastle-noop-issues.mts';
+import {
+  type IssueRef,
+  branchDiffIsEmpty,
+  branchHasCommitsAhead,
+  branchHasOpenPr,
+  fetchIssue,
+  findWorktreeForBranch,
+  listSandcastleBranches,
+  markIssueNoOp,
+  parseIssueIdFromBranch,
+  worktreeReapBlockerFor,
+} from './sandcastle-git.mts';
+
+// Find sandcastle/* branches that are ahead of BASE_BRANCH but not in
+// `alreadyQueued`. These are typically branches whose prior merge phase
+// crashed or was interrupted — without rescuing them here they would
+// stay stranded forever, because the planner intentionally excludes
+// already-implemented branches from each iteration's plan.
+//
+// We also skip branches whose issue is CLOSED (the work likely landed
+// via another path and the local branch is stale), is on hold (a human
+// paused it), or that already have an open PR (the merger will pick it up
+// on its own).
+// Clean up a branch whose issue is CLOSED: delete the stale local branch, and
+// the worktree holding it first if one exists — because git refuses `branch -D`
+// on a checked-out branch. The worktree is removed ONLY when the reaper's safety
+// rules pass (worktreeReapBlockerFor); a blocked worktree means the branch can't
+// be deleted anyway ("used by worktree"), so we return early and skip the
+// `git branch -D` to avoid a confusing double-warning. Extracted so
+// collectStrandedIssues stays a shallow filter loop.
+function reapClosedIssueBranch(branch: string, id: string, state: string): void {
+  const worktreePath = findWorktreeForBranch(branch);
+  if (worktreePath) {
+    const blocker = worktreeReapBlockerFor(worktreePath);
+    if (blocker) {
+      console.warn(
+        `  ⚠ refusing to remove worktree ${worktreePath}: ${blocker}. ` +
+          `Leaving branch ${branch} (issue #${id} is ${state}) in place.`,
+      );
+      return;
+    }
+    try {
+      execSync(`git worktree remove --force "${worktreePath}"`, { stdio: 'pipe' });
+      console.log(
+        `  🧹 removed stale worktree ${worktreePath} (issue #${id} is ${state})`,
+      );
+    } catch (err) {
+      console.warn(
+        `  ⚠ could not remove worktree ${worktreePath}: ${(err as Error).message}`,
+      );
+    }
+  }
+  try {
+    execSync(`git branch -D ${branch}`, { stdio: 'pipe' });
+    console.log(`  🧹 deleted stale local branch ${branch} (issue #${id} is ${state})`);
+  } catch (err) {
+    console.warn(
+      `  ⚠ could not delete stale branch ${branch} (issue #${id} ${state}): ${(err as Error).message}`,
+    );
+  }
+}
+
+// Record a branch whose commits net to an empty diff: mark the issue (a comment
+// saying what happened, plus NOOP_LABEL) unless a previous run already marked
+// it, in which case say so and move on. The reasoning for retiring rather than
+// rescuing, and for marking rather than skipping silently, lives with the rule
+// itself (strandedDisposition, sandcastle-noop-issues.mts).
+//
+// The branch is deliberately left in place: it holds the reverted attempt, which
+// is what a human reading the comment goes to look at.
+//
+// Takes the disposition rather than letting the caller split the two cases at
+// the call site: `collectStrandedIssues` sits one guard below the cognitive-
+// complexity ceiling, so the second branch has to live here — same reason
+// reapClosedIssueBranch is extracted.
+function retireEmptyDiffBranch(
+  branch: string,
+  id: string,
+  disposition: StrandedDisposition,
+  iteration: number,
+): void {
+  if (disposition === 'already-retired') {
+    console.log(
+      `  ⊘ skipping stranded branch ${branch}: commits net to an empty diff ` +
+        `(#${id} already marked ${NOOP_LABEL}).`,
+    );
+    return;
+  }
+  const { commented, labeled } = markIssueNoOp(
+    id,
+    noOpIssueComment({ id, branch, iteration, reason: 'empty-diff' }),
+  );
+  console.log(
+    `  ⊘ stranded branch ${branch}: commits net to an empty diff — #${id} left open, ` +
+      `excluded from rescue (comment ${commented ? 'posted' : 'FAILED'}, ` +
+      `${NOOP_LABEL} ${labeled ? 'added' : 'FAILED'}).`,
+  );
+}
+
+// Why an OPEN issue's branch is not the rescue's to touch, or null when it is.
+// A held issue is a human's pause: the planner never dispatches it, so the
+// rescue must not dispatch it through its branch either — and it writes nothing
+// on it, not even the no-op mark, and leaves the branch where it is. An open PR
+// means the merger already owns the branch. Extracted so collectStrandedIssues
+// stays under the cognitive-complexity ceiling.
+function openIssueSkipReason(
+  branch: string,
+  id: string,
+  labels: readonly string[],
+): string | null {
+  if (hasHoldLabel(labels)) return `#${id} is on hold (${HOLD_LABEL})`;
+  if (branchHasOpenPr(branch)) return 'already has an open PR';
+  return null;
+}
+
+export function collectStrandedIssues(
+  alreadyQueued: Set<string>,
+  iteration: number,
+): IssueRef[] {
+  const stranded: IssueRef[] = [];
+  for (const branch of listSandcastleBranches()) {
+    if (alreadyQueued.has(branch)) continue;
+    if (!branchHasCommitsAhead(branch)) continue;
+    const id = parseIssueIdFromBranch(branch);
+    if (!id) {
+      console.warn(`  ⚠ skipping stranded branch with unparseable name: ${branch}`);
+      continue;
+    }
+    const issue = fetchIssue(id);
+    if (!issue) {
+      console.warn(`  ⚠ skipping stranded branch ${branch}: gh issue view ${id} failed`);
+      continue;
+    }
+    if (issue.state !== 'OPEN') {
+      // Issue closed → the work already landed (squash-merge leaves orphan local
+      // commits that still look "ahead"). Delete the stale local branch — and
+      // the worktree holding it, if any and only when safe. See
+      // reapClosedIssueBranch.
+      reapClosedIssueBranch(branch, id, issue.state);
+      continue;
+    }
+    const skip = openIssueSkipReason(branch, id, issue.labels);
+    if (skip) {
+      console.warn(`  ⚠ skipping stranded branch ${branch}: ${skip}`);
+      continue;
+    }
+    // Commits ahead is a count, not a diff — an add-then-revert branch passes
+    // every check above and still has nothing to land. See strandedDisposition.
+    const disposition = strandedDisposition({
+      diffEmpty: branchDiffIsEmpty(branch),
+      labels: issue.labels,
+    });
+    if (disposition !== 'rescue') {
+      retireEmptyDiffBranch(branch, id, disposition, iteration);
+      continue;
+    }
+    // Honour the same `sc:` model overrides on the rescue path — a rescued
+    // branch still runs its reviewer. A malformed label is a warning here, not
+    // a throw: refusing to rescue stranded work over a label typo would strand
+    // it further. The default profile is used instead, and the warning says so.
+    const { overrides, errors } = parseOverrideLabels(issue.labels);
+    if (errors.length > 0) {
+      console.warn(
+        `  ⚠ #${id}: ignoring model override label(s), using defaults — ${errors.join('; ')}`,
+      );
+    }
+    stranded.push({
+      id,
+      title: issue.title,
+      branch,
+      ...(errors.length === 0 && Object.keys(overrides).length > 0 ? { overrides } : {}),
+    });
+  }
+  return stranded;
+}
+
+// Build-verify a rescued/stranded branch in its own throwaway sandbox before
+// it reaches the merger (build-gate hardening). The rescue path picks up branches whose
+// prior pipeline crashed or was interrupted — exactly the case where the
+// branch's build state is unknown — so merging them blind made the build gate
+// advisory-only. Returns true when the branch is safe to merge (build passed,
+// or the diff is docs-only and the build is skipped); false on any build
+// failure or sandbox error, in which case the caller skips the branch and it
+// stays stranded for human attention rather than merging unverified.
+async function buildVerifyRescuedBranch(
+  ref: IssueRef,
+  abortSignal: AbortSignal,
+): Promise<boolean> {
+  if (isDocsOnlyDiff(ref.branch)) {
+    console.log(`[build-verify] rescued #${ref.id}: skipped (docs-only diff)`);
+    return true;
+  }
+
+  // Graceful-shutdown guard. createSandbox() takes no AbortSignal
+  // in @ai-hero/sandcastle@0.12.0, so we gate the call site instead: on abort,
+  // don't spin up a new build-verify sandbox — this is "new work".
+  abortSignal.throwIfAborted();
+
+  let sandbox: Awaited<ReturnType<typeof createWorktreeSandbox>>;
+  try {
+    sandbox = await createWorktreeSandbox(ref.branch);
+  } catch (err) {
+    console.warn(
+      `  ⚠ rescued branch ${ref.branch} (#${ref.id}): could not create sandbox ` +
+        `for build-verify (${(err as Error).message}) — skipping (stays stranded).`,
+    );
+    return false;
+  }
+
+  try {
+    console.log(`[build-verify] rescued #${ref.id}: running pnpm build …`);
+    const buildResult = await runBuildVerify(sandbox, `rescued-${ref.id}`);
+    if (!buildResult.passed) {
+      const tail = buildResult.stdout.split('\n').slice(-50).join('\n');
+      console.warn(
+        `  ⚠ rescued branch ${ref.branch} (#${ref.id}) FAILED build-verify — ` +
+          `skipping (stays stranded for human attention).\n` +
+          `--- last 50 lines ---\n${tail}`,
+      );
+      return false;
+    }
+    console.log(`[build-verify] rescued #${ref.id}: passed`);
+    return true;
+  } catch (err) {
+    console.warn(
+      `  ⚠ rescued branch ${ref.branch} (#${ref.id}) build-verify errored ` +
+        `(${(err as Error).message}) — skipping (stays stranded).`,
+    );
+    return false;
+  } finally {
+    await sandbox.close();
+  }
+}
+
+// Build-verify every rescued branch and return only those safe to merge.
+// Branches that fail stay stranded; the skipped count is logged here so both
+// rescue call sites report it identically.
+export async function verifyStrandedBranches(
+  stranded: IssueRef[],
+  abortSignal: AbortSignal,
+): Promise<IssueRef[]> {
+  const verified: IssueRef[] = [];
+  for (const ref of stranded) {
+    if (await buildVerifyRescuedBranch(ref, abortSignal)) verified.push(ref);
+  }
+  const skipped = stranded.length - verified.length;
+  if (skipped > 0) {
+    console.log(`  ${skipped} rescued branch(es) failed build-verify and stay stranded.`);
+  }
+  return verified;
+}

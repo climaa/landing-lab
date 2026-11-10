@@ -1,0 +1,181 @@
+import NextLink from 'next/link';
+import type { CSSProperties } from 'react';
+import { Badge, Table, type TableColumn, type TableRow } from '@lab/ui';
+import { UNKNOWN, formatBytes, shortSha } from '@/lib/outcome';
+import { setHref } from '@/lib/shots';
+import type { CaptureSet } from '@/lib/summary';
+import { DeleteSetButton } from './ConfirmDialogs';
+
+/**
+ * The capture sets this instance holds, newest first — the order `sets.json` is
+ * written in.
+ *
+ * The row is built as data rather than as a component, because the table is
+ * data-driven: the cells are what a row is, and the table owns every element
+ * around them — including the reflow to a card below 768 px. Keeping the row's
+ * vocabulary here is what keeps set/sha/branch/dirty out of `@lab/ui`.
+ */
+
+/** The name the acceptance scenario finds this table by. */
+const SETS_TABLE_LABEL = 'Screenshot sets';
+
+// Every column but the label holds a short, predictable value, so each says how
+// much room it takes and the label keeps the rest. Left to `table-layout: fixed`
+// all seven took an equal slice: `stories` got as much as the label, which then
+// ellipsised away the date and the `-2` that tell two sets apart, while the date
+// broke over two lines. The branch still truncates, with the whole name on hover.
+const SET_COLUMNS: readonly TableColumn[] = [
+  { header: 'label', truncate: true },
+  { header: 'sha', width: '6rem' },
+  { header: 'branch', truncate: true, width: '6rem' },
+  { header: 'date', width: '6.5rem' },
+  { header: 'stories', numeric: true, width: '4rem' },
+  { header: 'size', numeric: true, width: '6rem' },
+  // The delete button's own width, not a share of the table: `table-layout: fixed`
+  // allots every undeclared column an equal slice, and at this panel's width that
+  // slice is narrower than the button standing in it.
+  { header: 'actions', hideHeader: true, width: '6rem' },
+];
+
+/**
+ * The least room the label keeps before the table scrolls instead.
+ *
+ * The fixed columns above take 34.5rem whatever the panel's width, and the
+ * label gets what is left: at a 1280px viewport the panel is 562px, which left
+ * it 10px and the link that opens a set unclickable. So the table never shrinks
+ * below the fixed columns plus this, and its panel scrolls sideways past that
+ * point rather than squeezing the label to nothing.
+ */
+const LABEL_FLOOR = '10rem';
+
+/** The table's least width, read off the columns so the two cannot drift. */
+const TABLE_FLOOR = `calc(${[
+  ...SET_COLUMNS.flatMap((column) => (column.width ? [column.width] : [])),
+  LABEL_FLOOR,
+].join(' + ')})`;
+
+/**
+ * The sets whose commit a newer set has captured again.
+ *
+ * The list is newest first, so a set is superseded when its sha already appeared
+ * further up. The newest capture of a sha stays unmarked — it is the one a
+ * reader reaches first and compares with — and every older one below it is
+ * marked, however many there are.
+ */
+export function supersededCaptures(sets: readonly CaptureSet[]): ReadonlySet<string> {
+  const seen = new Set<string>();
+  const superseded = new Set<string>();
+
+  for (const set of sets) {
+    if (seen.has(set.sha)) superseded.add(set.label);
+    seen.add(set.sha);
+  }
+
+  return superseded;
+}
+
+function setRow(
+  set: CaptureSet,
+  bytes: number | undefined,
+  frozen: boolean,
+  superseded: boolean,
+): TableRow {
+  return {
+    key: set.label,
+    cells: [
+      {
+        // Two text nodes, never interpolated: a label is not "main-08-11dirty",
+        // and the badge is a mark under the name rather than part of it — see
+        // `.vd-qualified` in console.css.
+        // The label opens the set viewer, but only where this instance actually
+        // holds the shots. `bytes` is the measured tree, not the registry's
+        // claim — the same signal the size column draws `—` for — so a set
+        // captured elsewhere, one whose directory a human moved, and sample mode
+        // (which lists sets and ships no `sets/` tree at all) are covered by one
+        // rule. `lib/report-view.ts` states the principle for the other pair of
+        // links on this console: a dead link beside a live one is worse than no
+        // link.
+        content: (
+          <span className="vd-qualified">
+            {bytes === undefined ? (
+              <span className="vd-set__label">{set.label}</span>
+            ) : (
+              <NextLink className="vd-set__label" href={setHref(set.label)}>
+                {set.label}
+              </NextLink>
+            )}
+            {set.dirty && <Badge tone="warning">dirty</Badge>}
+          </span>
+        ),
+        title: set.label,
+      },
+      {
+        // The board's column is a short sha, and a `sets.json` written with a
+        // full one would widen the column past everything beside it. The whole
+        // sha stays on `title`, which is what a reviewer copies out. The
+        // same-sha badge sits under it, because it qualifies the sha rather than
+        // the label.
+        content: (
+          <span className="vd-qualified">
+            <span className="vd-mono">{shortSha(set.sha)}</span>
+            {superseded && <Badge>same sha</Badge>}
+          </span>
+        ),
+        title: set.sha,
+      },
+      { content: set.branch, title: set.branch },
+      set.capturedAt,
+      // The unit rides with the number, clipped. Below 768 px the row reflows
+      // into a card whose per-cell label is `::before` generated content, which
+      // is not in the accessibility tree — so without this a reader hears the
+      // figure with nothing to say what it counts.
+      <>
+        {set.stories}
+        <span className="ds-visually-hidden">{' stories'}</span>
+      </>,
+      bytes === undefined ? UNKNOWN : formatBytes(bytes),
+      // Named `delete` and nothing more. What it will delete is named by the
+      // dialog it opens — D2: nothing here is deleted implicitly, and the row is
+      // not where a set's whole identity is repeated.
+      //
+      // Absent rather than disabled wherever the console cannot mutate, the rule
+      // `ReportsTable` and the run panel already keep: `DELETE /api/sets/[label]`
+      // refuses a request from off the machine (`NOT_LOCAL`) and one against the
+      // committed fixtures (`SAMPLE_DATA`) alike, and a button whose only outcome
+      // is a refusal is an invitation to look for the way to enable it. The column
+      // stays, holding nothing — same as the reports table.
+      frozen ? null : <DeleteSetButton label={set.label} key="delete" />,
+    ],
+  };
+}
+
+export interface SetsTableProps {
+  sets: readonly CaptureSet[];
+  /** Bytes on disk per set label. A set with no entry has no shot tree here —
+   *  see lib/data.ts's `readSetSizes`, which measures rather than trusts. */
+  sizes: Readonly<Record<string, number>>;
+  /** Whether this console can change anything at all — `isSample || !isLocal`,
+   *  derived once by `DashboardTemplate`. A frozen one draws no delete at all;
+   *  see the cell. */
+  frozen: boolean;
+}
+
+export function SetsTable({ sets, sizes, frozen }: SetsTableProps) {
+  const superseded = supersededCaptures(sets);
+
+  return (
+    <div
+      className="vd-sets-scroll"
+      style={{ '--vd-sets-floor': TABLE_FLOOR } as CSSProperties}
+    >
+      <Table
+        label={SETS_TABLE_LABEL}
+        columns={SET_COLUMNS}
+        rows={sets.map((set) =>
+          setRow(set, sizes[set.label], frozen, superseded.has(set.label)),
+        )}
+        className="vd-sets-table"
+      />
+    </div>
+  );
+}

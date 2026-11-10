@@ -1,0 +1,405 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+// Imported explicitly rather than relying on `globals: true` — tsconfig's
+// `**/*.tsx` include means tsc typechecks this file.
+import { afterEach, describe, expect, it } from 'vitest';
+import { ReportTemplate } from '../components/ReportTemplate';
+import type { CanonicalSet } from '../lib/baselines';
+import type { CaptureSet, Summary, Variant } from '../lib/summary';
+import { setSearchParams } from './stubs/next-navigation';
+
+/**
+ * How the report is organised — which is the whole of its argument.
+ *
+ * Accessibility leads: the first region a reviewer meets answers *is anything
+ * inaccessible?* before *did anything move?*, and an `a11y` variant is never
+ * folded into the tier section its pixels would put it in. The rest is the
+ * design system's own ladder, one named region per tier.
+ *
+ * Rendered through `ReportTemplate` rather than the route, because the route
+ * only resolves the data directory (data.test.ts owns that) and hands the
+ * summary over.
+ */
+
+const REPORT_ID = 'main-2026-08-17__main-2026-08-13';
+
+function variant(overrides: Partial<Variant> & Pick<Variant, 'key' | 'id'>): Variant {
+  return {
+    tier: 'atoms',
+    viewport: 'desktop',
+    theme: 'light',
+    bucket: 'changed',
+    overlapDiffPixels: 4213,
+    marginPixels: 0,
+    diffPixels: 4213,
+    allowedDiffPixels: 292,
+    width: 1248,
+    height: 469,
+    sizeDelta: null,
+    violations: [],
+    error: null,
+    ...overrides,
+  };
+}
+
+const A11Y = variant({
+  key: 'organisms__desktop__light__atoms-badge--tones',
+  id: 'atoms-badge--tones',
+  tier: 'organisms',
+  bucket: 'a11y',
+  overlapDiffPixels: 0,
+  violations: [{ id: 'color-contrast', nodes: 2 }],
+});
+
+/** The same story, in a bucket the accessibility section must not surrender it to. */
+const A11Y_PIXELS = variant({
+  key: 'organisms__desktop__dark__atoms-badge--tones',
+  id: 'atoms-badge--tones',
+  tier: 'organisms',
+  theme: 'dark',
+});
+
+const CHANGED = variant({
+  key: 'templates__desktop__light__templates-posttemplate--long-prose',
+  id: 'templates-posttemplate--long-prose',
+  tier: 'templates',
+});
+
+const REMOVED = variant({
+  key: 'molecules__desktop__light__molecules-taglist--empty',
+  id: 'molecules-taglist--empty',
+  tier: 'molecules',
+  bucket: 'removed',
+  overlapDiffPixels: 0,
+});
+
+const WARNING =
+  '14 unstable story(ies) matched byte-for-byte across sets — treated as unchanged.';
+
+const SETS: CaptureSet[] = [
+  {
+    label: 'main-2026-08-17',
+    sha: 'f2570e1',
+    branch: 'main',
+    capturedAt: '2026-08-17',
+    stories: 106,
+  },
+  {
+    label: 'main-2026-08-13',
+    sha: 'e0427b4',
+    branch: 'main',
+    capturedAt: '2026-08-13',
+    stories: 104,
+  },
+];
+
+const REPORT: Summary = {
+  schemaVersion: 1,
+  exitCode: 1,
+  thresholds: { maxDiffPixels: 40, maxDiffRatio: 0.0005 },
+  env: { platform: 'linux', arch: 'arm64' },
+  counts: { unchanged: 100, changed: 2, added: 0, removed: 1, errored: 0, a11y: 1 },
+  warnings: [WARNING],
+  variants: [A11Y, A11Y_PIXELS, CHANGED, REMOVED],
+};
+
+/** The template inside the landmark the app shell gives it, so the ordering
+ *  assertions below are about `main`'s regions and not about the whole page. */
+function renderReport(
+  report: Summary = REPORT,
+  id = REPORT_ID,
+  corpus: CanonicalSet | null = null,
+) {
+  setSearchParams('');
+
+  return render(
+    <main>
+      <ReportTemplate id={id} report={report} sets={SETS} corpus={corpus} />
+    </main>,
+  );
+}
+
+const main = () => screen.getByRole('main');
+/**
+ * The tier sections, which are every region inside `main` except the report's
+ * own header.
+ *
+ * The header is a labelled `region` rather than a second `banner` — see
+ * ReportTemplate.tsx for why — so a bare region sweep of `main` now collects it
+ * alongside the sections. Filtering it out by name keeps these cases saying what
+ * they mean: one region per tier, in tier order. Folding `'report'` into each
+ * expected list would have passed just as well and asserted something else.
+ */
+const tierRegions = () =>
+  within(main())
+    .getAllByRole('region')
+    .filter((region) => region.getAttribute('aria-label') !== 'report');
+const buckets = () => screen.getByRole('group', { name: 'Buckets' });
+
+const namesOf = (elements: readonly HTMLElement[]) =>
+  elements.map((element) => element.getAttribute('aria-label'));
+
+// `globals` is off in vitest.config.mts, so Testing Library registers no automatic
+// cleanup — without this every render stacks in the same document.
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
+
+describe('the result sections', () => {
+  it('leads with the accessibility region', () => {
+    renderReport();
+
+    const regions = tierRegions();
+
+    expect(namesOf(regions)[0]).toBe('Accessibility');
+  });
+
+  it('names one region per tier that has variants', () => {
+    renderReport();
+
+    const regions = tierRegions();
+
+    expect(namesOf(regions)).toEqual([
+      'Accessibility',
+      'molecules',
+      'organisms',
+      'templates',
+    ]);
+  });
+
+  it('keeps an a11y variant out of the tier section its pixels would put it in', () => {
+    renderReport();
+
+    const a11y = within(main()).getByRole('region', { name: 'Accessibility' });
+    const organisms = within(main()).getByRole('region', { name: 'organisms' });
+
+    expect(within(a11y).getAllByRole('article')).toHaveLength(1);
+    expect(within(organisms).getAllByRole('article')).toHaveLength(1);
+  });
+
+  it('counts a section against its own variants', () => {
+    renderReport();
+
+    const organisms = within(main()).getByRole('region', { name: 'organisms' });
+
+    expect(within(organisms).getByRole('heading', { level: 2 }).textContent).toContain(
+      '(1) 0/1',
+    );
+  });
+
+  it('collapses a section out of the DOM rather than hiding it', () => {
+    renderReport();
+    const organisms = within(main()).getByRole('region', { name: 'organisms' });
+
+    fireEvent.click(
+      within(organisms).getByRole('button', { name: 'collapse organisms' }),
+    );
+
+    expect(within(organisms).queryAllByRole('article')).toHaveLength(0);
+  });
+});
+
+describe('the bucket chip row', () => {
+  it('leads with a11y when the bucket is not empty', () => {
+    renderReport();
+
+    const chips = within(buckets()).getAllByRole('button');
+
+    expect(namesOf(chips)[0]).toBe('a11y');
+  });
+
+  it('leaves a11y in its own place when nothing is inaccessible', () => {
+    renderReport({
+      ...REPORT,
+      counts: { ...REPORT.counts, a11y: 0 },
+      variants: [CHANGED],
+    });
+
+    const chips = within(buckets()).getAllByRole('button');
+
+    expect(namesOf(chips)[0]).toBe('changed');
+  });
+
+  // `changed` is a substring of `unchanged`, and the two are the verdicts this
+  // whole gate exists to keep apart. Their names are exact, never derived from
+  // the chips' contents.
+  it('names changed and unchanged as two different chips', () => {
+    renderReport();
+
+    const changed = within(buckets()).getByRole('button', { name: 'changed' });
+    const unchanged = within(buckets()).getByRole('button', { name: 'unchanged' });
+
+    expect(changed).not.toBe(unchanged);
+  });
+
+  it('filters the sections down to the bucket that was picked', () => {
+    renderReport();
+
+    fireEvent.click(within(buckets()).getByRole('button', { name: 'removed' }));
+
+    expect(namesOf(tierRegions())).toEqual(['molecules']);
+  });
+
+  // A clean run writes no variants at all — every one of them matched. The
+  // report still opens, and says so rather than reading as an empty filter.
+  it('says nothing moved when the run produced no variants', () => {
+    renderReport({
+      ...REPORT,
+      exitCode: 0,
+      counts: { unchanged: 106, changed: 0, added: 0, removed: 0, errored: 0, a11y: 0 },
+      variants: [],
+    });
+
+    expect(screen.getByText(/every variant matched its baseline/)).toBeTruthy();
+  });
+
+  // Regression, 18 Oct 2026: a clean run still drew "reviewed 0/0", a hide
+  // toggle, a next-unreviewed button and collapse all — controls with nothing to
+  // act on, under a note saying there is nothing to review.
+  it('draws no review controls when the run wrote no rows', () => {
+    renderReport({
+      ...REPORT,
+      exitCode: 0,
+      counts: { unchanged: 106, changed: 0, added: 0, removed: 0, errored: 0, a11y: 0 },
+      variants: [],
+    });
+
+    expect({
+      next: screen.queryByRole('button', { name: /next unreviewed/ }),
+      collapse: screen.queryByRole('button', { name: /collapse all/ }),
+      progress: screen.queryByText(/reviewed 0\/0/),
+    }).toEqual({ next: null, collapse: null, progress: null });
+  });
+
+  it('says why the unchanged bucket has nothing to open', () => {
+    renderReport();
+
+    fireEvent.click(within(buckets()).getByRole('button', { name: 'unchanged' }));
+
+    expect(screen.getByText(/counted, never written/)).toBeTruthy();
+  });
+});
+
+describe('the report header', () => {
+  // A deployed console and one showing the committed fixtures refuse every
+  // mutation, so the header draws no delete there — and the template draws none
+  // unless its caller says the console can change things.
+  it('offers no delete on a console that can change nothing', () => {
+    renderReport();
+
+    const header = screen.getByRole('region', { name: 'report' });
+
+    expect(within(header).queryByRole('button', { name: 'delete report' })).toBeNull();
+  });
+
+  it('offers the report its own delete on a console that can change it', () => {
+    setSearchParams('');
+    render(
+      <main>
+        <ReportTemplate id={REPORT_ID} report={REPORT} sets={SETS} frozen={false} />
+      </main>,
+    );
+
+    const header = screen.getByRole('region', { name: 'report' });
+
+    expect(within(header).getByRole('button', { name: 'delete report' })).toBeDefined();
+  });
+
+  it('identifies both capture sets', () => {
+    renderReport();
+
+    const header = screen.getByRole('region', { name: 'report' });
+
+    expect(header.textContent).toContain('main-2026-08-17');
+    expect(header.textContent).toContain('f2570e1');
+    expect(header.textContent).toContain('main-2026-08-13');
+    expect(header.textContent).toContain('e0427b4');
+  });
+
+  // The run's parameters are read once per report, while the comparisons under them
+  // are the work, so they start folded and the first screenful goes to the results.
+  // The fold sits inside the landmark, so what the report says it ran with is the
+  // same either way.
+  it('folds the run parameters behind one disclosure, closed by default', () => {
+    renderReport();
+
+    const header = screen.getByRole('region', { name: 'report' });
+    const details = within(header).getByText('report details').closest('details');
+
+    expect(details?.hasAttribute('open')).toBe(false);
+    expect(details?.textContent).toContain('thresholds');
+  });
+
+  // Which two sets were compared is what a reader arriving at a shared link needs
+  // first, so the sides stay outside the fold and are never hidden by it.
+  it('names both capture sets outside the folded disclosure', () => {
+    renderReport();
+
+    const header = screen.getByRole('region', { name: 'report' });
+    const details = within(header).getByText('report details').closest('details');
+
+    expect(details?.textContent).not.toContain('main-2026-08-17');
+    expect(details?.textContent).not.toContain('main-2026-08-13');
+    expect(header.textContent).toContain('main-2026-08-17');
+    expect(header.textContent).toContain('main-2026-08-13');
+  });
+
+  it('carries the report id as the page heading', () => {
+    renderReport();
+
+    const heading = screen.getByRole('heading', { level: 1 });
+
+    expect(heading.textContent).toBe(REPORT_ID);
+  });
+
+  // A report outlives the sets it was built from — a pruned label is still half
+  // the comparison, and a header that dropped it would be hiding one side.
+  it('keeps a side whose label the registry no longer holds', () => {
+    renderReport(REPORT, 'main-2026-08-17__pruned-2026-08-01');
+
+    const header = screen.getByRole('region', { name: 'report' });
+
+    expect(header.textContent).toContain('pruned-2026-08-01');
+    expect(within(header).getByText(/no capture set recorded/)).toBeTruthy();
+  });
+
+  // Regression, 18 Oct 2026: a report against `baselines` said "no capture set
+  // recorded under this label" for the canonical corpus, which is not in the
+  // capture registry by design.
+  it('names the canonical corpus as such, with the commit that accepted it', () => {
+    renderReport(REPORT, 'baselines__main-2026-08-17', {
+      label: 'baselines',
+      sha: 'cb2012f',
+      acceptedAt: '2026-10-17',
+      stories: 200,
+      bytes: 2_200_000,
+    });
+
+    const header = screen.getByRole('region', { name: 'report' });
+
+    expect({
+      canonical: header.textContent?.includes('canonical'),
+      accepted: header.textContent?.includes('cb2012f'),
+      stories: header.textContent?.includes('200 stories'),
+      missing: within(header).queryByText(/no capture set recorded/),
+    }).toEqual({ canonical: true, accepted: true, stories: true, missing: null });
+  });
+});
+
+describe('the corpus warnings', () => {
+  it('names the unstable stories, undismissably', () => {
+    renderReport();
+
+    const note = screen.getByRole('note', { name: 'corpus warnings' });
+
+    expect(note.textContent).toContain(WARNING);
+    expect(within(note).queryByRole('button')).toBeNull();
+  });
+
+  it('renders nothing at all for a run that recorded none', () => {
+    renderReport({ ...REPORT, warnings: [] });
+
+    expect(screen.queryByRole('note', { name: 'corpus warnings' })).toBeNull();
+  });
+});

@@ -1,0 +1,111 @@
+/**
+ * @lab/ui — self-hosted faces.
+ *
+ * Fraunces (display), Atkinson Hyperlegible (body) and JetBrains Mono (code),
+ * all three SIL OFL 1.1, so the binaries live in this public repository beside
+ * their licence texts (src/fonts/OFL-*.txt — the OFL requires the licence to
+ * travel with the files). The three families are the design board's normative
+ * choice: Fraunces carries the editorial voice, Atkinson Hyperlegible is drawn
+ * for legibility and so backs the repo's accessibility story with the body text
+ * itself, JetBrains Mono is the engineering register.
+ *
+ * WHY SELF-HOSTED, NOT A SYSTEM STACK. A `system-ui, -apple-system, …` stack
+ * resolves to a different face on every machine, so a screenshot taken locally
+ * and one taken in CI can never match. The visual-diff gate compares captures
+ * byte-wise against baselines built in a pinned Linux container, and committed
+ * font bytes are the only thing that makes that comparison meaningful.
+ *
+ * PROVENANCE. Every woff2 here was copied out of the exact-pinned
+ * @fontsource/fraunces, @fontsource/atkinson-hyperlegible and
+ * @fontsource/jetbrains-mono devDependencies of this package. Those three
+ * entries exist only as that record — nothing imports them at runtime, and the
+ * committed bytes are what ships, so a later @fontsource release cannot change
+ * the rendering underneath us. src/fonts/og/ carries its own PROVENANCE.md,
+ * since its TTF comes from the upstream Fraunces release.
+ *
+ * `font-display: block` on every face, deliberately. It costs up to ~3 s of
+ * invisible text on a slow cold visit; it buys the guarantee that no capture is
+ * ever taken mid-swap — a swap-timing diff is one a rerun makes disappear, which
+ * is the worst kind. The bias toward determinism over first paint is the point.
+ *
+ * WEIGHTS. Only the weights a --weight-* token asks for, and only weights the
+ * family actually draws: Fraunces 600 (the board's display weight), Atkinson
+ * Hyperlegible 400 and 700 — the two it ships, there is no 500 or 600 — and
+ * JetBrains Mono 400. A token whose weight has no face renders as a synthesized
+ * bold, which is per-engine: the same non-determinism, one layer down.
+ *
+ * src/fonts/og/Fraunces9pt-SemiBold.ttf is the one documented exemption from
+ * woff2-only: next/og renders through satori, which reads neither page CSS nor
+ * woff2, so the OG route needs a TTF it can load itself — and the OG card's
+ * title is a heading, so the display face is the one it needs. It is referenced
+ * by no @font-face below, and the token suite excludes that directory by name.
+ *
+ * THE FOUR BLOCKS REPEAT, AND THAT IS NOT FIXABLE HERE. They differ only in
+ * font-family, font-weight and src; the bulk of what they share is the
+ * unicode-range, written out four times. Plain CSS offers nothing to hoist it
+ * with: @import pulls in whole sheets rather than parameterizing a rule, there
+ * are no mixins, and `var()` is not resolved inside @font-face descriptors — so
+ * even `unicode-range: var(--latin-subset)` would silently fail.
+ *
+ * next/font/local WOULD collapse them: one localFont() call per family takes a
+ * src array of {path, weight, style} and generates the rules, with a
+ * `declarations` option for the range. It is rejected because of who reads this
+ * file. These four blocks are the only @font-face in the repo, and both apps
+ * reach them through @lab/ui/styles.css — apps/blog via app/globals.css,
+ * apps/storybook via .storybook/preview.ts. next/font emits its rules inside the
+ * Next app, and Storybook is Vite-based and could not consume them: its captures
+ * would render in fallback faces while the blog rendered in these, which is
+ * exactly the cross-machine divergence the whole self-hosting argument above
+ * exists to prevent. It would also invert the layering, moving font declaration
+ * out of the design system into one of its consumers.
+ *
+ * What guards a mis-copied block is not the absence of repetition but
+ * __tests__/tokens.test.ts, which parameterizes over the faces it parses out of
+ * this file: a fifth block is covered the moment it is added, and a src: URL
+ * pointing at a file that does not exist fails the suite. Deduplicating the CSS
+ * would not have caught that; the test does.
+ */
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('./fonts/fraunces-latin-600-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/atkinson-hyperlegible-latin-400-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('./fonts/atkinson-hyperlegible-latin-700-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
