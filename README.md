@@ -39,8 +39,8 @@ DOM and the accessibility failure are what change.
 ```sh
 git clone https://github.com/climaa/landing-lab && cd landing-lab
 pnpm install
-pnpm --filter @lab/seo-guard exec seo-guard --sitemap https://your-site.example/sitemap.xml
-pnpm --filter @lab/seo-guard exec seo-guard https://your-site.example/some/page --json
+pnpm seo-guard --sitemap https://your-site.example/sitemap.xml
+pnpm seo-guard https://your-site.example/some/page --json
 ```
 
 It reads pages the way a crawler does, with fetch and no JavaScript. It fetches each
