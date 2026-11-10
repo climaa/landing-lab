@@ -77,3 +77,52 @@ describe('MetricsStrip', () => {
     expect(markup).toMatch(/^<section[^>]*data-metrics-ignore=""/);
   });
 });
+
+describe('the SEO row', () => {
+  const withSeo = (seo: StripState['seo']) =>
+    renderToStaticMarkup(
+      <MetricsStrip label="Before" state={{ ...MEASURED, seo }} path="/before" />,
+    );
+
+  it('waits with a placeholder while the guard runs', () => {
+    // Arrange + Act
+    const markup = withSeo({ status: 'loading' });
+
+    // Assert
+    expect(markup).toMatch(/<dt>SEO<\/dt><dd><[a-z]+ [^>]*ds-skeleton/);
+  });
+
+  it('says no findings when the guard found no error', () => {
+    // Arrange + Act
+    const markup = withSeo({
+      status: 'done',
+      summary: { errors: 0, warnings: 1, rules: ['hreflang-no-self'] },
+    });
+
+    // Assert
+    expect(markup).toContain('<span class="lab-pass">✓ No findings</span>');
+  });
+
+  it('counts the errors and links them to the report', () => {
+    // Arrange + Act
+    const markup = withSeo({
+      status: 'done',
+      summary: { errors: 4, warnings: 1, rules: [] },
+    });
+
+    // Assert
+    expect(markup).toContain(
+      '<a class="lab-fail" href="/api/seo?path=%2Fbefore">✗ 4 findings</a>',
+    );
+  });
+
+  it('is not drawn where nothing asked the guard', () => {
+    // Arrange + Act
+    const markup = renderToStaticMarkup(
+      <MetricsStrip label="Before" state={{ ...MEASURED, seo: undefined }} />,
+    );
+
+    // Assert
+    expect(markup).not.toContain('<dt>SEO</dt>');
+  });
+});

@@ -26,6 +26,19 @@ const BEFORE: StripState = {
     status: 'done',
     result: { violations: 1, nodes: 660, axeVersion: '4.14.0', tags: [] },
   },
+  seo: {
+    status: 'done',
+    summary: {
+      errors: 4,
+      warnings: 1,
+      rules: [
+        'link-non-canonical',
+        'hreflang-duplicate',
+        'hreflang-not-reciprocal',
+        'jsonld-invalid',
+      ],
+    },
+  },
 };
 
 const AFTER: StripState = {
@@ -36,6 +49,7 @@ const AFTER: StripState = {
     status: 'done',
     result: { violations: 0, nodes: 0, axeVersion: '4.14.0', tags: [] },
   },
+  seo: { status: 'done', summary: { errors: 0, warnings: 0, rules: [] } },
 };
 
 export const Default = {
