@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { stripNumber } from '../support/strip-number';
 import { WEB_URL } from './web-host';
 
 export type Side = 'Before' | 'After';
@@ -17,9 +18,17 @@ export class LandingPage {
     return this.page.getByRole('region', { name: `${side}: measured` });
   }
 
-  /** One row's value in a strip, once the strip has measured. */
+  /**
+   * One row's value in a strip, once the strip has measured.
+   *
+   * The strip itself first: on /before and /after it mounts only after
+   * hydration (`PageStrip` renders nothing on the server), and until it exists
+   * "no skeleton inside it" is already true. On a slow runner the read then
+   * landed on a cell still measuring, read "" — and `number` made that 0.
+   */
   async value(side: Side, row: string): Promise<string> {
     const strip = this.strip(side);
+    await expect(strip).toBeVisible({ timeout: 20_000 });
     await expect(strip.locator('.ds-skeleton')).toHaveCount(0, { timeout: 20_000 });
 
     return (
@@ -30,9 +39,9 @@ export class LandingPage {
     ).trim();
   }
 
-  /** A strip value read as a number: "1,529" → 1529, "219.5 KB" → 219.5. */
+  /** A strip value read as a number; see `stripNumber` for what it refuses. */
   async number(side: Side, row: string): Promise<number> {
-    return Number((await this.value(side, row)).replace(/[^\d.]/g, ''));
+    return stripNumber(await this.value(side, row));
   }
 
   frame(side: Side): Locator {
