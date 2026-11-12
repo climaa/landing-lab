@@ -1,0 +1,4 @@
+# No tracked file names what the gitignored .leak-denylist lists. Local on
+# purpose: the denylist never reaches CI, so only this machine can check it.
+# A clone without the denylist gets a one-line warning and the commit goes on.
+node scripts/leak-guard.mjs

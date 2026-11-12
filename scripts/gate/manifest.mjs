@@ -32,11 +32,12 @@
  *   `fast` runs on every push. `full` is opt-in — see the tier note below.
  * @property {string} [cwd]       Repo-relative. Defaults to the repo root.
  * @property {string} [setup]     Run once before `command`, for a check that needs it.
- * @property {'checks' | 'own'} job
+ * @property {'checks' | 'own' | 'local'} job
  *   Which CI job runs it. `checks` legs share one matrix because their steps are
  *   byte-identical; `own` is for a check needing something of its own — a
  *   Playwright browser, a Docker daemon, a working directory — which a shared
- *   matrix leg cannot express.
+ *   matrix leg cannot express. `local` is for a check that needs a file only a
+ *   person's machine holds: the hooks run it, CI never does.
  * @property {boolean} [needsDocker]
  * @property {string} why         Why this check exists, for whoever it fails on.
  */
@@ -111,7 +112,9 @@ export const CHECKS = [
   },
   {
     name: 'leak',
-    job: 'checks',
+    // `local`: the denylist is gitignored and never reaches CI, where this check
+    // could only pass without reading anything. `.husky/pre-commit` runs it too.
+    job: 'local',
     command: 'node scripts/leak-guard.mjs',
     tier: 'fast',
     why: 'No tracked file names what a gitignored .leak-denylist lists: the lab is public and its brand fictional.',

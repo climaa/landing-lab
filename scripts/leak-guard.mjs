@@ -11,11 +11,16 @@
 //   node scripts/leak-guard.mjs                 this repository
 //   node scripts/leak-guard.mjs --root <dir>    another checkout (tests)
 //
-// Exit 0: no hit, or no denylist on this machine (said in one line, since a
+// It runs in `.husky/pre-commit`, on the machine that holds the denylist. CI
+// does not run it, on purpose: the denylist never reaches CI, so a CI leg could
+// only pass without checking anything.
+//
+// Exit 0: no hit, or no denylist on this machine (a one-line warning, since a
 // fresh clone has none). 1: a tracked file holds a term; each hit is printed
-// as path:line. Matching is case-insensitive and literal. `.pen` boards and
-// binaries are skipped: a board is drawn text that only Pencil edits, and a
-// binary is not read as text.
+// as path:line with the term masked. The denylist itself is never printed.
+// Matching is case-insensitive and literal. `.pen` boards and binaries are
+// skipped: a board is drawn text that only Pencil edits, and a binary is not
+// read as text.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -54,6 +59,15 @@ export function findLeaks(files, terms) {
   );
 }
 
+/**
+ * A term as it may be printed: its first character, then a fixed mask, so a
+ * hit can be told apart from another without the log spelling it, or its
+ * length, out.
+ *
+ * @param {string} term @returns {string}
+ */
+export const maskTerm = (term) => `${term.slice(0, 1)}***`;
+
 /** @param {string} root @returns {{ path: string, text: string }[]} */
 function trackedTextFiles(root) {
   const listed = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' });
@@ -75,7 +89,7 @@ function main(argv) {
   const denylistPath = join(root, DENYLIST);
 
   if (!existsSync(denylistPath)) {
-    console.log(`leak-guard: no ${DENYLIST} on this machine, nothing to check`);
+    console.warn(`leak-guard: warning: no ${DENYLIST} on this machine, nothing checked`);
 
     return 0;
   }
@@ -89,9 +103,11 @@ function main(argv) {
     return 0;
   }
 
-  // The term is not echoed: the log of a public CI run is public too.
+  // The term is masked, never echoed: a terminal log gets pasted into issues.
   console.error('leak-guard: a tracked file names something it must not');
-  leaks.forEach(({ path, line }) => console.error(`  ${path}:${line}`));
+  leaks.forEach(({ path, line, term }) =>
+    console.error(`  ${path}:${line}  ${maskTerm(term)}`),
+  );
 
   return 1;
 }
