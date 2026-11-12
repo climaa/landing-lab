@@ -18,21 +18,29 @@ the two pages side by side with their numbers measured in your browser ·
 
 ## Before and after, measured
 
-Production build, Chromium at 1280×800, three runs. All three were identical (spread 0).
+The production deployment, read from each page's own metrics panel in a clean Chromium at
+1280×800, three runs on 2026-11-12. All three were identical (spread 0), so each value is
+also the median. Gzip is the document's size with `Accept-Encoding: gzip`.
 
 |                                | `/before` (one `<img>` per star)     | `/after` (`RatingStars`) |
 | ------------------------------ | ------------------------------------ | ------------------------ |
 | `<img>` in the page            | 660                                  | **0**                    |
 | `<img>` without `alt`          | 660                                  | **0**                    |
-| DOM elements                   | 1,529                                | **973** (−36 %)          |
+| DOM elements                   | 1,530                                | **974** (−36 %)          |
 | axe violations (WCAG 2.1 A/AA) | 1 rule (`image-alt`) on 660 elements | **0**                    |
-| HTML, decoded                  | 219.5 KB                             | **160.2 KB** (−27 %)     |
-| HTML, gzip on the wire         | 12.3 KB                              | 11.9 KB (−3 %)           |
+| HTML, decoded                  | 220.2 KB                             | **160.9 KB** (−27 %)     |
+| HTML, gzip on the wire         | 13.2 KB                              | 12.4 KB (−6 %)           |
 | SEO guard                      | 4 errors                             | **0**                    |
 
 Same 100 reviews and 10 businesses on both pages; only how a rating and an avatar are built
 differs. The HTML saving is mostly repetition that gzip already removes. The images, the
 DOM and the accessibility failure are what change.
+
+What the DOM count includes: every element of the document as the browser holds it,
+minus the metrics panel itself. On production that includes the analytics `<script>`, which
+only production deployments render, so a local `next start` counts one element fewer on each
+page. The live panel on [/compare](https://landing-lab.carloslima.dev/compare) counts the
+document in your browser, so an extension that adds elements to pages adds to it too.
 
 ## Run the SEO guard on any site
 

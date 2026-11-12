@@ -47,18 +47,18 @@ size than the broken one.
 
 ## What it changed, measured
 
-The same 100 reviews and 10 businesses (110 ratings) drawn both ways. Measured three times
-on the production build of `apps/web`, in Chromium at 1280×800, after load. All three runs
-gave the same numbers.
+The same 100 reviews and 10 businesses (110 ratings) drawn both ways. The numbers are the
+README's "Before and after, measured" table, copied as is: the production deployment, three
+identical runs in Chromium at 1280×800. A test fails if a row here stops matching it.
 
-|                        | One `<img>` per star                 | `RatingStars`    |
-| ---------------------- | ------------------------------------ | ---------------- |
-| `<img>` in the page    | 660                                  | 0                |
-| `<img>` without `alt`  | 660                                  | 0                |
-| DOM elements           | 1,529                                | 973 (−36 %)      |
-| axe (WCAG 2.1 A/AA)    | 1 rule, `image-alt`, on 660 elements | 0                |
-| HTML, decoded          | 219.5 KB                             | 160.2 KB (−27 %) |
-| HTML, gzip on the wire | 12.3 KB                              | 11.9 KB (−3 %)   |
+|                                | One `<img>` per star                 | `RatingStars`    |
+| ------------------------------ | ------------------------------------ | ---------------- |
+| `<img>` in the page            | 660                                  | 0                |
+| `<img>` without `alt`          | 660                                  | 0                |
+| DOM elements                   | 1,530                                | 974 (−36 %)      |
+| axe violations (WCAG 2.1 A/AA) | 1 rule (`image-alt`) on 660 elements | 0                |
+| HTML, decoded                  | 220.2 KB                             | 160.9 KB (−27 %) |
+| HTML, gzip on the wire         | 13.2 KB                              | 12.4 KB (−6 %)   |
 
 The 660 images include 110 avatar images that the fixed page replaces with initials. The
 HTML saving is mostly repetition that compression already removes; the images, the
