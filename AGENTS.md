@@ -3,7 +3,7 @@
 Seeded from `acceptance-gate` at `5b45da5`; the blog and the manual stayed there.
 **The brand on every page, Taskbloom, is fictional.** No real company's name, logo,
 colours, copy, URL shapes or screenshots go into any file, commit, PR or issue —
-`scripts/leak-guard.mjs` (`.husky/pre-commit`, and the `leak` check of the local gate) holds tracked files to a gitignored
+`scripts/leak-guard.mjs` (run by `.husky/pre-commit`, not by the gate) holds tracked files to a gitignored
 denylist.
 
 You are working inside a checkout of `landing-lab`. Everything you

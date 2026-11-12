@@ -9,6 +9,10 @@
 // portafolio's, which has run its gate this way from the start; the checks are
 // the ones `pr.yml` ran, so nothing that was gated before goes ungated.
 //
+// Not here: `scripts/leak-guard.mjs`. Its denylist is gitignored, so in CI and
+// in a `--at` worktree it could only pass without reading anything; it runs in
+// `.husky/pre-commit`, against the index, on the machine that holds the list.
+//
 // `checksMatrix` below still builds a CI matrix from this list, for the day the
 // workflows are switched back on: one list, so a hook and a workflow cannot
 // become two grammars that drift. A slow check added here is paid on every push
@@ -32,12 +36,11 @@
  *   `fast` runs on every push. `full` is opt-in — see the tier note below.
  * @property {string} [cwd]       Repo-relative. Defaults to the repo root.
  * @property {string} [setup]     Run once before `command`, for a check that needs it.
- * @property {'checks' | 'own' | 'local'} job
+ * @property {'checks' | 'own'} job
  *   Which CI job runs it. `checks` legs share one matrix because their steps are
  *   byte-identical; `own` is for a check needing something of its own — a
  *   Playwright browser, a Docker daemon, a working directory — which a shared
- *   matrix leg cannot express. `local` is for a check that needs a file only a
- *   person's machine holds: the hooks run it, CI never does.
+ *   matrix leg cannot express.
  * @property {boolean} [needsDocker]
  * @property {string} why         Why this check exists, for whoever it fails on.
  */
@@ -109,15 +112,6 @@ export const CHECKS = [
     command: 'pnpm turbo run build --filter=@lab/web && node scripts/seo-check.mjs',
     tier: 'fast',
     why: 'The built category pages read as a crawler reads them: the sitemap passes packages/seo-guard, and /before still fails it.',
-  },
-  {
-    name: 'leak',
-    // `local`: the denylist is gitignored and never reaches CI, where this check
-    // could only pass without reading anything. `.husky/pre-commit` runs it too.
-    job: 'local',
-    command: 'node scripts/leak-guard.mjs',
-    tier: 'fast',
-    why: 'No tracked file names what a gitignored .leak-denylist lists: the lab is public and its brand fictional.',
   },
   {
     name: 'boards',
