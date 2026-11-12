@@ -1,6 +1,6 @@
 # Project Index: landing-lab
 
-Version 0.1.0 · generated 2026-11-10 (regenerate with `/sc:index-repo` — a stale date here
+Version 0.1.0 · generated 2026-11-12 (regenerate with `/sc:index-repo` — a stale date here
 means the index needs a refresh)
 
 A public lab on marketing landing pages: how a page heavy with images, missing alt text
@@ -13,7 +13,7 @@ fictional. Seeded from [`acceptance-gate`](https://github.com/climaa/acceptance-
 
 ```
 .sandcastle/           the autonomous orchestrator, inherited and inert here (no .env)
-.claude/skills/        five agent skills, committed so a sandbox sees them
+.claude/skills/        six agent skills, committed so a sandbox sees them
 apps/
   storybook/           Storybook 10 for packages/ui and the console's screens
   visual-diff-ui/      the visual-diff console: sets, reports, the shot view
@@ -51,9 +51,11 @@ scripts/               the gate, complexity ceiling, boards, index and leak chec
 
 ## 🧪 Tests
 
-- Workspace test files: `apps/visual-diff-ui` 83 · `packages/ui` 39 ·
-  `packages/visual-diff` 11 · `apps/storybook` 10 · `packages/logger` 3 · `apps/e2e` 2 ·
-  `packages/links` 1; root `scripts/` and `.sandcastle/` 65
-- `apps/e2e`: 54 acceptance scenarios (the visual-diff console) and 1 local-lane scenario
+- Workspace test files: `apps/visual-diff-ui` 83 · `packages/ui` 40 ·
+  `packages/visual-diff` 11 · `apps/storybook` 10 · `apps/web` 7 · `apps/e2e` 3 ·
+  `packages/logger` 3 · `packages/seo-guard` 3 · `packages/links` 1; root `scripts/` 14
+  and `.sandcastle/` 52
+- `apps/e2e`: 73 acceptance scenarios (54 on the visual-diff console, 19 on the landing
+  pages) and 1 local-lane scenario
 - `packages/visual-diff`: 260 committed baselines across atoms, molecules, organisms,
   templates and the console's screens

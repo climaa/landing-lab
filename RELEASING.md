@@ -2,7 +2,7 @@
 
 Nothing here publishes to npm. Every workspace is `private: true`, so the version is a
 coherence marker rather than a distribution fact: the repo is the product, and it carries
-one version across all nine manifests.
+one version across all eleven manifests.
 
 `CHANGELOG.md` at the root is the changelog's source. There are no changesets. **"Add a
 changelog entry" means "add it under `## Unreleased` in `CHANGELOG.md`."** At release time
@@ -41,10 +41,11 @@ tables for people who will never open the repository. Never paste one into the o
 
 1. Branch `release/X.Y.Z` off `main`.
 
-2. Bump **nine** manifests in lockstep — the root, `apps/{e2e,storybook,visual-diff-ui}`
-   and `packages/{links,logger,tsconfig,ui,visual-diff}`, plus any workspace added since
-   (count `apps/*/package.json` and `packages/*/package.json`). Nothing else in the tree
-   carries the version.
+2. Bump **eleven** manifests in lockstep — the root, `apps/{e2e,storybook,visual-diff-ui,web}`
+   and `packages/{links,logger,seo-guard,tsconfig,ui,visual-diff}`, plus any workspace added
+   since (count `apps/*/package.json` and `packages/*/package.json`). Nothing else in the
+   tree carries the version. A first release tags the version the manifests already carry
+   and skips this step.
 
 3. Prove `pnpm install --frozen-lockfile` still resolves and leaves `pnpm-lock.yaml`
    untouched. Every internal dependency is `workspace:*`, so it should — verify it rather
@@ -92,5 +93,5 @@ tables for people who will never open the repository. Never paste one into the o
    `## Unreleased`, with its headings shifted back up one level (`###` → `##`). Copy it;
    do not rewrite it. The title reads `vX.Y.Z — <narrative>`, em-dash separated.
 
-Deploying the landing app is not part of this procedure yet: it gets a Vercel project when
-the app exists, and the deploy steps are written here in the same PR that creates it.
+Deploying is not a step here: two Vercel projects (the category pages and Storybook)
+deploy `main` to production on every merge, so the release PR's merge is the deploy.
