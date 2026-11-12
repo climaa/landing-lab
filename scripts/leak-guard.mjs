@@ -10,12 +10,22 @@
 //
 //   node scripts/leak-guard.mjs                 this repository
 //   node scripts/leak-guard.mjs --root <dir>    another checkout (tests)
+//   node scripts/leak-guard.mjs --staged        what the next commit holds
 //
-// Exit 0: no hit, or no denylist on this machine (said in one line, since a
+// `--staged` is the pre-commit mode: it reads each staged file from the index,
+// not the working tree, since the index is what gets committed. A term staged
+// and then cleaned from disk only would otherwise pass.
+//
+// It runs in `.husky/pre-commit`, on the machine that holds the denylist. CI
+// does not run it, on purpose: the denylist never reaches CI, so a CI leg could
+// only pass without checking anything.
+//
+// Exit 0: no hit, or no denylist on this machine (a one-line warning, since a
 // fresh clone has none). 1: a tracked file holds a term; each hit is printed
-// as path:line. Matching is case-insensitive and literal. `.pen` boards and
-// binaries are skipped: a board is drawn text that only Pencil edits, and a
-// binary is not read as text.
+// as path:line with the term masked. The denylist itself is never printed.
+// Matching is case-insensitive and literal. `.pen` boards and binaries are
+// skipped: a board is drawn text that only Pencil edits, and a binary is not
+// read as text.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -54,6 +64,15 @@ export function findLeaks(files, terms) {
   );
 }
 
+/**
+ * A term as it may be printed: its first character, then a fixed mask, so a
+ * hit can be told apart from another without the log spelling it, or its
+ * length, out.
+ *
+ * @param {string} term @returns {string}
+ */
+export const maskTerm = (term) => `${term.slice(0, 1)}***`;
+
 /** @param {string} root @returns {{ path: string, text: string }[]} */
 function trackedTextFiles(root) {
   const listed = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' });
@@ -63,6 +82,32 @@ function trackedTextFiles(root) {
     .filter((path) => path !== '' && !SKIPPED.test(path))
     .filter((path) => existsSync(join(root, path)))
     .map((path) => ({ path, text: readFileSync(join(root, path), 'utf8') }));
+}
+
+/** @param {string} root @param {string} path @returns {string} */
+const stagedText = (root, path) =>
+  execFileSync('git', ['show', `:${path}`], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+
+/**
+ * Every file the next commit adds or changes, as the index holds it.
+ *
+ * @param {string} root @returns {{ path: string, text: string }[]}
+ */
+function stagedTextFiles(root) {
+  const listed = execFileSync(
+    'git',
+    ['diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR'],
+    { cwd: root, encoding: 'utf8' },
+  );
+
+  return listed
+    .split('\0')
+    .filter((path) => path !== '' && !SKIPPED.test(path))
+    .map((path) => ({ path, text: stagedText(root, path) }));
 }
 
 /** @param {string[]} argv @returns {number} */
@@ -75,23 +120,29 @@ function main(argv) {
   const denylistPath = join(root, DENYLIST);
 
   if (!existsSync(denylistPath)) {
-    console.log(`leak-guard: no ${DENYLIST} on this machine, nothing to check`);
+    console.warn(`leak-guard: warning: no ${DENYLIST} on this machine, nothing checked`);
 
     return 0;
   }
 
   const terms = parseDenylist(readFileSync(denylistPath, 'utf8'));
-  const leaks = findLeaks(trackedTextFiles(root), terms);
+  const staged = argv.includes('--staged');
+  const files = staged ? stagedTextFiles(root) : trackedTextFiles(root);
+  const leaks = findLeaks(files, terms);
 
   if (leaks.length === 0) {
-    console.log(`leak-guard: ${terms.length} term(s), no tracked file holds one`);
+    console.log(
+      `leak-guard: ${terms.length} term(s), no ${staged ? 'staged' : 'tracked'} file holds one`,
+    );
 
     return 0;
   }
 
-  // The term is not echoed: the log of a public CI run is public too.
+  // The term is masked, never echoed: a terminal log gets pasted into issues.
   console.error('leak-guard: a tracked file names something it must not');
-  leaks.forEach(({ path, line }) => console.error(`  ${path}:${line}`));
+  leaks.forEach(({ path, line, term }) =>
+    console.error(`  ${path}:${line}  ${maskTerm(term)}`),
+  );
 
   return 1;
 }

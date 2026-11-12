@@ -55,7 +55,7 @@ env:
 # carry that case is a silent footgun. Say it out loud instead.
 #
 # Repeated per job because GitHub Actions does not support YAML anchors. The
-# `checks` matrix below shares the nine per-command jobs' steps, but a matrix
+# `checks` matrix below shares the eight per-command jobs' steps, but a matrix
 # cannot share this guard line, so all five jobs (checks, sandcastle, e2e,
 # visual-diff, gate) still carry their own copy. A new job added in a later
 # wave needs this line too — and, unless it's meant to stay informational like
@@ -83,8 +83,8 @@ jobs:
     #
     # fail-fast: false is load-bearing. The default cancels the surviving legs
     # on the first failure; the run goes red either way (gate counts cancelled
-    # as failure too), but losing those six results defeats the whole reason
-    # nine checks exist.
+    # as failure too), but losing those seven results defeats the whole reason
+    # eight checks exist.
     #
     # name: ${{ matrix.name }} keeps the check names byte-identical to the
     # pre-matrix jobs (lint, typecheck, …). Without it each leg renders as
@@ -121,10 +121,9 @@ jobs:
           # Every planned story has its tile, every board PNG its scale; needs the
           # Storybook build, so it is a turbo root task (designs/STANDARD.md).
           - { name: boards, run: pnpm turbo run boards:check }
-          # No tracked file names what the gitignored .leak-denylist lists. In CI
-          # there is no denylist, so this leg passes with a notice: the guard
-          # that counts is the pre-push one, on the machine that holds the list.
-          - { name: leak, run: node scripts/leak-guard.mjs }
+          # No `leak` leg, on purpose. scripts/leak-guard.mjs needs the gitignored
+          # .leak-denylist, which never reaches CI, so a leg here could only pass
+          # without checking anything. It runs in .husky/pre-commit instead.
           # The built category pages, crawled: the sitemap passes packages/seo-guard
           # and /before still fails it (scripts/seo-check.mjs).
           - {
@@ -405,10 +404,10 @@ jobs:
     # reports even when a needed job fails; it fails unless every result is
     # exactly 'success' (skipped/cancelled count as failure).
     #
-    # needs.checks.result is a single aggregate over the nine matrix legs: any
+    # needs.checks.result is a single aggregate over the eight matrix legs: any
     # leg failure -> failure, any leg cancelled -> cancelled, draft PR (the
     # job-level guard skips the whole job) -> skipped. The one thing lost
-    # versus nine separate jobs: the failure echo below no longer names which
+    # versus eight separate jobs: the failure echo below no longer names which
     # leg failed — the checks list still does, the log line just doesn't
     # repeat it.
     needs: [checks, sandcastle, e2e]

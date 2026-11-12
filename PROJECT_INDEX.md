@@ -45,7 +45,8 @@ scripts/               the gate, complexity ceiling, boards, index and leak chec
   (dependsOn `@lab/visual-diff-ui#build`, uncached), `health` (its `inputs` include
   `scripts/complexity-gate.mjs`)
 - `scripts/gate/manifest.mjs` — the gate as data: lint, typecheck, build, test, format,
-  health, seo, leak, boards, sandcastle, e2e (fast); visual-diff (full)
+  health, seo, boards, sandcastle, e2e (fast); visual-diff (full). The leak guard runs
+  in `.husky/pre-commit` instead
 - `pnpm-workspace.yaml` — `minimumReleaseAge` three days, `engineStrict`
 
 ## 🧪 Tests

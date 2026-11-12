@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 // @ts-expect-error — plain .mjs with JSDoc types, no declaration file.
-import { findLeaks, parseDenylist } from '../leak-guard.mjs';
+import { findLeaks, maskTerm, parseDenylist } from '../leak-guard.mjs';
 
 const SCRIPT = resolve(__dirname, '../leak-guard.mjs');
 
@@ -61,6 +61,19 @@ describe('findLeaks', () => {
   });
 });
 
+describe('maskTerm', () => {
+  it('keeps the first character and hides the rest, length included', () => {
+    // Arrange
+    const terms = ['acme corp', 'ab'];
+
+    // Act
+    const masked = terms.map(maskTerm);
+
+    // Assert
+    expect(masked).toEqual(['a***', 'a***']);
+  });
+});
+
 describe('leak-guard.mjs, run on a repository', () => {
   const dirs: string[] = [];
 
@@ -83,13 +96,14 @@ describe('leak-guard.mjs, run on a repository', () => {
     return spawnSync('node', [SCRIPT, '--root', dir], { encoding: 'utf8' });
   }
 
-  it('fails naming path:line when a tracked file holds a denied term', () => {
+  it('fails naming path:line with the term masked, never spelled', () => {
     // Arrange + Act
     const run = repo('one\ntwo Acme Corp\n', 'acme corp\n');
 
     // Assert
     expect(run.status).toBe(1);
-    expect(run.stderr).toContain('docs/page.md:2');
+    expect(run.stderr).toContain('docs/page.md:2  a***');
+    expect(`${run.stdout}${run.stderr}`.toLowerCase()).not.toContain('acme corp');
   });
 
   it('passes when no tracked file holds a denied term', () => {
@@ -100,12 +114,56 @@ describe('leak-guard.mjs, run on a repository', () => {
     expect(run.status).toBe(0);
   });
 
-  it('passes with a one-line notice when there is no denylist', () => {
+  it('with --staged, reads the index: a term staged then cleaned on disk still fails', () => {
+    // Arrange
+    const dir = mkdtempSync(join(tmpdir(), 'leak-guard-'));
+    dirs.push(dir);
+    const git = (...args: string[]) =>
+      spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    git('init', '-q');
+    writeFileSync(join(dir, 'page.md'), 'two Acme Corp\n');
+    git('add', 'page.md');
+    writeFileSync(join(dir, 'page.md'), 'clean\n');
+    writeFileSync(join(dir, '.leak-denylist'), 'acme corp\n');
+
+    // Act
+    const run = spawnSync('node', [SCRIPT, '--root', dir, '--staged'], {
+      encoding: 'utf8',
+    });
+
+    // Assert
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain('page.md:1  a***');
+  });
+
+  it('with --staged, ignores a term only in an unstaged change', () => {
+    // Arrange
+    const dir = mkdtempSync(join(tmpdir(), 'leak-guard-'));
+    dirs.push(dir);
+    const git = (...args: string[]) =>
+      spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    git('init', '-q');
+    writeFileSync(join(dir, 'page.md'), 'clean\n');
+    git('add', 'page.md');
+    writeFileSync(join(dir, 'page.md'), 'two Acme Corp\n');
+    writeFileSync(join(dir, '.leak-denylist'), 'acme corp\n');
+
+    // Act
+    const run = spawnSync('node', [SCRIPT, '--root', dir, '--staged'], {
+      encoding: 'utf8',
+    });
+
+    // Assert
+    expect(run.status).toBe(0);
+  });
+
+  it('passes with a one-line warning when there is no denylist', () => {
     // Arrange + Act
     const run = repo('anything\n');
 
     // Assert
     expect(run.status).toBe(0);
-    expect(run.stdout).toMatch(/no \.leak-denylist/);
+    expect(run.stderr.trim().split('\n')).toHaveLength(1);
+    expect(run.stderr).toMatch(/warning: no \.leak-denylist/);
   });
 });
