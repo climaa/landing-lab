@@ -46,8 +46,8 @@ describe('the words a link previews with', () => {
   it("are the welcome page's lead, as a reader sees it", () => {
     const words = welcomeWords(WELCOME);
 
-    expect(words.description).toMatch(/^This repo is a design system and a blog/);
-    expect(words.description).toContain('before it reaches main.');
+    expect(words.description).toMatch(/^This Storybook belongs to landing-lab/);
+    expect(words.description).toContain('keep the fix from coming back.');
     expect(words.description).not.toMatch(/[`*\n]/);
   });
 

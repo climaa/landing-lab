@@ -230,3 +230,88 @@ describe('quality gates docs', () => {
     },
   );
 });
+
+/**
+ * The README's "Before and after, measured" table is the one source of the lab's
+ * numbers. Every other page that prints them copies it, and this block fails the
+ * day a copy and the source disagree: a re-measure that updates one and not the
+ * other is exactly how 1,529 and 1,530 ended up on the same site.
+ */
+type Row = { label: string; cells: string[] };
+
+/** The pipe-table rows of the section under `heading`, header and rule dropped. */
+const tableUnder = (text: string, heading: string): Row[] => {
+  const section = text.slice(text.indexOf(heading)).split(/\n## /)[0] ?? '';
+
+  return section
+    .split('\n')
+    .filter((line) => line.startsWith('| ') && !line.startsWith('| --'))
+    .slice(1)
+    .map((line) =>
+      line
+        .split('|')
+        .slice(1, -1)
+        .map((cell) => cell.replaceAll('**', '').trim()),
+    )
+    .map(([label = '', ...cells]) => ({ label, cells }));
+};
+
+const readmeTable = tableUnder(readme, '## Before and after, measured');
+const ratingStarsTable = tableUnder(
+  fs.readFileSync(path.join(DOCS_DIR, 'atomic-design', 'RatingStars.mdx'), 'utf8'),
+  '## What it changed, measured',
+);
+
+/** "1,530" → 1530, "220.2 KB" → 220.2; undefined when the cell holds no number. */
+const leadingNumber = (cell: string) => {
+  const match = /^([\d,]+(?:\.\d+)?)/.exec(cell);
+
+  return match?.[1] === undefined ? undefined : Number(match[1].replaceAll(',', ''));
+};
+
+/** Rows that state a change as "(−N %)" after the /after value. */
+const percentRows = readmeTable.flatMap(({ label, cells: [before = '', after = ''] }) => {
+  const stated = /\(−(\d+) %\)/.exec(after)?.[1];
+
+  return stated === undefined
+    ? []
+    : [
+        {
+          label,
+          before: leadingNumber(before),
+          after: leadingNumber(after),
+          stated: Number(stated),
+        },
+      ];
+});
+
+/** Wherever the numbers are written: an axe count is rules on elements, never "N violations". */
+const numberSources = [
+  'README.md',
+  'apps/storybook/src/docs/quality-gates/gates.ts',
+  ...mdxFilesIn(DOCS_DIR).map((file) => path.relative(REPO_ROOT, file)),
+];
+
+describe("the README's measured table is the one source of the numbers", () => {
+  it('has the table to compare against', () => {
+    expect(readmeTable.length).toBeGreaterThan(0);
+    expect(ratingStarsTable.length).toBeGreaterThan(0);
+  });
+
+  it.each(ratingStarsTable)(
+    'Rating Stars repeats "$label" exactly',
+    ({ label, cells }) => {
+      expect(readmeTable.find((row) => row.label === label)?.cells).toEqual(cells);
+    },
+  );
+
+  it.each(percentRows)('"$label" states the change its own numbers make', (row) => {
+    expect(row.before).toBeGreaterThan(0);
+    const change = (((row.before ?? 0) - (row.after ?? 0)) / (row.before ?? 1)) * 100;
+    expect(Math.round(change)).toBe(row.stated);
+  });
+
+  it.each(numberSources)('%s never counts axe findings as "N violations"', (file) => {
+    expect(read(file)).not.toMatch(/\b\d[\d,]*\s+(?:axe\s+)?violations\b/i);
+  });
+});

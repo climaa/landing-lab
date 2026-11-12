@@ -142,8 +142,8 @@ export const MEASURES: readonly Measure[] = [
   },
   {
     label: 'DOM elements',
-    before: '1,529',
-    after: '973',
+    before: '1,530',
+    after: '974',
     heldBy:
       'e2e: the after page has fewer DOM elements than the before page. The exact count is measured, not gated.',
     risk: 'A heavier page to parse and lay out on every visit.',
