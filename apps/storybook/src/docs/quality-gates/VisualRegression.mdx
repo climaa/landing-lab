@@ -1,0 +1,48 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { Mermaid } from '../Mermaid';
+
+<Meta title="Docs/Quality Gates/Visual Regression" />
+
+# Visual regression
+
+The `visual-diff` job photographs every story in this Storybook and compares each
+screenshot with the one committed in `packages/visual-diff/__baselines__/`. It answers one
+question: did the interface move?
+
+## From a story to a decision
+
+<Mermaid
+  chart={`
+flowchart TD
+    A["A story in Storybook"] --> B["Capture: pinned container,<br/>each viewport and theme"]
+    B --> C{"Compare with the committed baseline"}
+    C -->|"identical"| D["unchanged: exit 0"]
+    C -->|"changed, added, removed,<br/>errored or a11y"| E["exit 1: visual-diff check fails,<br/>report posted on the PR"]
+    C -->|"run proved nothing"| X["exit 2: broken run"]
+    E --> F{"A person reads the report"}
+    F -->|"intended"| G["accept: new baselines<br/>committed in the same PR"]
+    F -->|"unintended"| H["fix the component, push again"]
+`}
+/>
+
+Source: the `visual-diff` job in
+[`.github/workflows/pr.yml`](https://github.com/climaa/landing-lab/blob/main/.github/workflows/pr.yml),
+and `EXIT` in `packages/visual-diff/src/policy.mjs`.
+
+## Why it does not block a merge on its own
+
+`visual-diff` is deliberately left out of `gate.needs`. When the interface moves, the job
+fails its own check loudly and posts the report as a PR comment, but whether a moved pixel
+is a bug or the point of the change is a judgment, not a threshold. The PR stays mergeable
+on the `gate`'s results; the red `visual-diff` check is what tells the reviewer to look.
+An intended change is accepted by committing the new baselines in the same PR (the
+`accept-baselines` workflow, or `pnpm visual-diff:accept` locally), so the baseline and the
+code change are reviewed together.
+
+The same run checks every captured story with axe (WCAG 2.1 A and AA), and a violation is
+its own bucket, `a11y`, even when the pixels match.
+
+Documentation pages like this one are not captured: the differ photographs stories, and
+drops docs entries before planning a capture. For the buckets and the report in detail, see
+[Visual Diff Workflow](?path=/docs/docs-qa-visual-diff-workflow--docs).

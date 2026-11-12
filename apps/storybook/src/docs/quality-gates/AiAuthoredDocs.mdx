@@ -1,0 +1,45 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { Mermaid } from '../Mermaid';
+
+<Meta title="Docs/Quality Gates/AI-Authored Docs" />
+
+# AI-authored docs
+
+An AI agent wrote these pages. Docs like these drift: a job gets renamed, a number gets
+rounded, and nothing breaks except the reader's trust. Three rules keep them checkable.
+
+1. **Written from the code, not from memory.** Every behaviour described here was read in
+   the file it names. Where the code and a hoped-for behaviour differ, the page says what the
+   code does: `visual-diff` does not block a merge, and `main` does not enforce `gate`.
+2. **Every diagram names its source.** The `Source:` line under each diagram points at the
+   file it describes, so a reviewer can open it and compare.
+3. **Facts a test can hold are held by a test.** Job names and measured numbers live in
+   `gates.ts` and are checked against the files they come from on every `test` run.
+
+<Mermaid
+  chart={`
+flowchart LR
+    A["gates.ts:<br/>job names, numbers"] --> P["Quality Gates pages"]
+    A --> T{"docs-links.test.ts"}
+    Y["pr.yml"] --> T
+    R["README.md"] --> T
+    S["seo-guard rules"] --> T
+    T -->|"a name, number or rule id is missing"| F["test fails, so gate fails"]
+    T -->|"all present"| OK["pages stay in step"]
+`}
+/>
+
+Source: [`apps/storybook/__tests__/docs-links.test.ts`](https://github.com/climaa/landing-lab/blob/main/apps/storybook/__tests__/docs-links.test.ts),
+the "quality gates docs" block.
+
+What the test holds:
+
+- every `name` in `gates.ts` is a job or a `checks` matrix leg in `.github/workflows/pr.yml`;
+- every measured value in `gates.ts` is written in `README.md`, as is;
+- every rule id in the SEO guard page's rule table is written in a file under
+  `packages/seo-guard/src/rules/`;
+- every page under this folder has a `Source:` line under each diagram.
+
+What it does not hold: the prose. A sentence can still go stale; the `Source:` lines are
+there so the next reader can catch it.

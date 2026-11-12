@@ -1,0 +1,82 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { Mermaid } from '../Mermaid';
+
+<Meta title="Docs/Quality Gates/SEO Guard" />
+
+# SEO guard
+
+The `seo` check builds the category pages (`apps/web`), serves them the way production
+does, and reads them the way a crawler does. `packages/seo-guard` is the reader.
+`scripts/seo-check.mjs` is the harness that runs it in the gate.
+
+## One run, step by step
+
+<Mermaid
+  chart={`
+sequenceDiagram
+    participant C as seo-check.mjs
+    participant W as next start :3400
+    participant G as seo-guard
+    C->>C: is port 3400 free?
+    Note over C: taken → exit 2
+    C->>W: start apps/web on :3400
+    C->>W: poll /after, up to 60 s
+    Note over C: no answer → exit 2
+    C->>G: pass 1: every page in /sitemap.xml
+    G-->>C: must be 0 (no error-level finding)
+    C->>G: pass 2, the control: /before
+    G-->>C: must be 1 (it fails, on purpose)
+    C->>W: stop the server
+    Note over C: both hold → exit 0, else exit 1
+`}
+/>
+
+Source: [`scripts/seo-check.mjs`](https://github.com/climaa/landing-lab/blob/main/scripts/seo-check.mjs)
+(`main()`), and `run()` in `packages/seo-guard/src/cli.mjs` for the guard's own exit codes.
+
+| Exit | Means                                                                       |
+| ---- | --------------------------------------------------------------------------- |
+| 0    | Every sitemap page passed, and `/before` still failed.                      |
+| 1    | A sitemap page has an error-level finding, or `/before` stopped failing.    |
+| 2    | The check could not run: port 3400 was taken, or the server did not answer. |
+
+## The guard tests itself
+
+A checker that finds nothing looks the same as a checker that is broken. `/before` is the
+antipattern page, built wrong on purpose, so the second pass must fail. If the guard ever
+stops finding its problems there (a rule deleted, a parser that reads nothing), the control
+pass returns 0 and the whole check fails with
+`/before passed the guard; the guard has stopped seeing it`. A green `seo` therefore means
+two things at once: the real pages are clean, and the guard can still see a dirty one.
+
+## What it checks
+
+Error-level findings fail the run. Warnings are reported and do not fail it.
+
+| Rule                      | Severity | Finds                                                             |
+| ------------------------- | -------- | ----------------------------------------------------------------- |
+| `canonical-missing`       | error    | No canonical link.                                                |
+| `canonical-multiple`      | error    | More than one canonical link.                                     |
+| `canonical-not-self`      | error    | The canonical names another page.                                 |
+| `link-non-canonical`      | error    | An internal link to an address whose canonical is somewhere else. |
+| `link-redirect`           | warning  | An internal link that answers with a redirect.                    |
+| `hreflang-duplicate`      | error    | One language declared more than once.                             |
+| `hreflang-not-reciprocal` | error    | An alternate that does not list this page back.                   |
+| `hreflang-no-self`        | warning  | Alternates that do not include the page itself.                   |
+| `hreflang-invalid`        | error    | An `hreflang` value that is not a language code.                  |
+| `hreflang-no-x-default`   | warning  | Two or more languages and no `x-default`.                         |
+| `jsonld-invalid`          | error    | A JSON-LD block that does not parse.                              |
+| `jsonld-missing-key`      | warning  | A known JSON-LD type missing a key it is not useful without.      |
+
+The JSON-LD types it knows, and the keys each needs:
+
+| Type              | Needs                                             |
+| ----------------- | ------------------------------------------------- |
+| `Organization`    | `name`, `url`                                     |
+| `AggregateRating` | `ratingValue`, and `reviewCount` or `ratingCount` |
+| `Service`         | `name`, `provider`                                |
+
+Source: `RULES` in `packages/seo-guard/src/crawl.mjs`, the rule files in
+`packages/seo-guard/src/rules/`, and `REQUIRED` in `rules/jsonld.mjs`. A test fails if a
+rule id in the first table is not written in a rule file.

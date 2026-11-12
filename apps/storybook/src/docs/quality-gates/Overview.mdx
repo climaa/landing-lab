@@ -1,0 +1,61 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { Mermaid } from '../Mermaid';
+import { GateTable } from './GateTables';
+
+<Meta title="Docs/Quality Gates/Overview" />
+
+# Quality gates
+
+Every change to this repository goes through checks that run on their own. This folder
+explains them for someone seeing the repository for the first time: what runs on a pull
+request, what each check proves, and what it protects on the pages a visitor sees. Each
+page is short. Each diagram names the file it was drawn from, so you can check it.
+
+## What runs on a pull request
+
+<Mermaid
+  chart={`
+flowchart LR
+    PR["Pull request opened or updated<br/>(drafts skip everything)"] --> C["checks<br/>matrix legs, in parallel"]
+    PR --> S["sandcastle"]
+    PR --> E["e2e"]
+    PR --> V["visual-diff"]
+    C --> G{"gate<br/>every result exactly success?"}
+    S --> G
+    E --> G
+    G -->|"yes"| OK["gate green: mergeable"]
+    G -->|"no: failure, cancelled or skipped"| NO["gate red: do not merge"]
+    V -.->|"not in gate.needs"| R["Report + PR comment<br/>a person decides"]
+`}
+/>
+
+Source: [`.github/workflows/pr.yml`](https://github.com/climaa/landing-lab/blob/main/.github/workflows/pr.yml),
+the `gate` job's `needs:` and the `checks` matrix.
+
+`gate` is the one check meant to be required. Today `main` has no branch rule that
+enforces it, so a red `gate` is a clear signal rather than a lock. The same checks also run
+on your machine before every push (`pnpm gate`, from `.husky/pre-push`).
+
+## Each check in one line
+
+<GateTable />
+
+Source: the `jobs:` of `pr.yml`. The rows come from `gates.ts` beside this page, and a test
+fails if a name in it is not a job or `checks` leg in `pr.yml`.
+
+## The other pages
+
+- [SEO guard](?path=/docs/docs-quality-gates-seo-guard--docs): how the `seo` check tests
+  the built pages, and tests itself.
+- [Visual regression](?path=/docs/docs-quality-gates-visual-regression--docs): how a
+  changed pixel reaches a person.
+- [Leak guard](?path=/docs/docs-quality-gates-leak-guard--docs): the one check CI does not
+  run, on purpose.
+- [Product impact](?path=/docs/docs-quality-gates-product-impact--docs): the measured
+  numbers each check keeps from coming back.
+- [AI-authored docs](?path=/docs/docs-quality-gates-ai-authored-docs--docs): how these
+  pages stay true.
+
+For the mechanics behind `gate` (draft handling, why skipped counts as failure), see
+[The Gate](?path=/docs/docs-devops-the-gate--docs).

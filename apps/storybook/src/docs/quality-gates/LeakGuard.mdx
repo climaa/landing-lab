@@ -1,0 +1,42 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { Mermaid } from '../Mermaid';
+
+<Meta title="Docs/Quality Gates/Leak Guard" />
+
+# Leak guard
+
+This repository is public and its brand, Taskbloom, is fictional. The leak guard keeps it
+that way: no committed file may name what a private list says must stay unnamed.
+
+## Local, before each commit, and never in CI
+
+<Mermaid
+  chart={`
+flowchart TD
+    A["git commit"] --> B[".husky/pre-commit:<br/>leak-guard.mjs --staged"]
+    B --> C{".leak-denylist on this machine?"}
+    C -->|"no"| D["one-line warning, commit goes on"]
+    C -->|"yes"| E{"a staged file holds a listed term?"}
+    E -->|"no"| F["commit goes on"]
+    E -->|"yes"| G["commit refused:<br/>path:line, term masked"]
+`}
+/>
+
+Source: [`scripts/leak-guard.mjs`](https://github.com/climaa/landing-lab/blob/main/scripts/leak-guard.mjs)
+and `.husky/pre-commit`.
+
+The list of terms lives in `.leak-denylist`, which `.gitignore` keeps out of every commit:
+a list of what must not appear would itself be a mention. CI checks out only what is
+committed, so in CI there is no list, and a CI job could only pass without reading
+anything. A check that is always green proves nothing, so CI does not run this one, on
+purpose. It runs where the list is: on the machine making the commit.
+
+It reads the staged version of each file, because that is what the commit records. A hit
+names `path:line` and only the first character of the term, so a pasted terminal log never
+spells it out.
+
+## What it does not cover
+
+A commit made with `--no-verify`, or on a machine without the list (a fresh clone, an agent
+sandbox), is not checked. That is the price of never putting the list on a shared system.

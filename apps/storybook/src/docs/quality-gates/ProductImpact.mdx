@@ -1,0 +1,33 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { ImpactTable } from './GateTables';
+
+<Meta title="Docs/Quality Gates/Product Impact" />
+
+# Product impact
+
+The lab builds one category page two ways. `/before` draws every star of every rating as its
+own `<img>` with no `alt`. `/after` uses the `RatingStars` component, which draws a rating as
+one named element. The README measured both: production build, Chromium at 1280×800, three
+identical runs. Every number below is copied from that table, and nothing else.
+
+<ImpactTable />
+
+Source: [README.md](https://github.com/climaa/landing-lab#before-and-after-measured),
+"Before and after, measured". A test fails if a value in this table is not written in the
+README as is.
+
+## In business terms
+
+- **Organic traffic.** The `seo` check fails the PR when a page sends mixed signals about
+  its own address: a missing or foreign canonical, links to non-canonical URLs, alternates
+  that do not point back. Those are the signals that decide which URL a search engine
+  indexes.
+- **Rich results.** JSON-LD that does not parse fails the same check, and the after page's
+  `Organization`, `Service` and `AggregateRating` types are asserted by the acceptance
+  suite.
+- **Accessibility.** The acceptance suite fails if the after page gains an image without
+  alternative text or any axe violation, so the fix cannot quietly regress.
+- **UI regressions.** Every story's pixels are compared with a committed baseline. A moved
+  pixel turns the `visual-diff` check red and puts the report on the PR, so an unintended
+  change is visible before merge, and an intended one is accepted in the same review.
