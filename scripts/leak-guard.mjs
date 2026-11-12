@@ -10,6 +10,11 @@
 //
 //   node scripts/leak-guard.mjs                 this repository
 //   node scripts/leak-guard.mjs --root <dir>    another checkout (tests)
+//   node scripts/leak-guard.mjs --staged        what the next commit holds
+//
+// `--staged` is the pre-commit mode: it reads each staged file from the index,
+// not the working tree, since the index is what gets committed. A term staged
+// and then cleaned from disk only would otherwise pass.
 //
 // It runs in `.husky/pre-commit`, on the machine that holds the denylist. CI
 // does not run it, on purpose: the denylist never reaches CI, so a CI leg could
@@ -79,6 +84,32 @@ function trackedTextFiles(root) {
     .map((path) => ({ path, text: readFileSync(join(root, path), 'utf8') }));
 }
 
+/** @param {string} root @param {string} path @returns {string} */
+const stagedText = (root, path) =>
+  execFileSync('git', ['show', `:${path}`], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+
+/**
+ * Every file the next commit adds or changes, as the index holds it.
+ *
+ * @param {string} root @returns {{ path: string, text: string }[]}
+ */
+function stagedTextFiles(root) {
+  const listed = execFileSync(
+    'git',
+    ['diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR'],
+    { cwd: root, encoding: 'utf8' },
+  );
+
+  return listed
+    .split('\0')
+    .filter((path) => path !== '' && !SKIPPED.test(path))
+    .map((path) => ({ path, text: stagedText(root, path) }));
+}
+
 /** @param {string[]} argv @returns {number} */
 function main(argv) {
   const rootFlag = argv.indexOf('--root');
@@ -95,10 +126,14 @@ function main(argv) {
   }
 
   const terms = parseDenylist(readFileSync(denylistPath, 'utf8'));
-  const leaks = findLeaks(trackedTextFiles(root), terms);
+  const staged = argv.includes('--staged');
+  const files = staged ? stagedTextFiles(root) : trackedTextFiles(root);
+  const leaks = findLeaks(files, terms);
 
   if (leaks.length === 0) {
-    console.log(`leak-guard: ${terms.length} term(s), no tracked file holds one`);
+    console.log(
+      `leak-guard: ${terms.length} term(s), no ${staged ? 'staged' : 'tracked'} file holds one`,
+    );
 
     return 0;
   }

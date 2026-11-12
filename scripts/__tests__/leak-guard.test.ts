@@ -114,6 +114,49 @@ describe('leak-guard.mjs, run on a repository', () => {
     expect(run.status).toBe(0);
   });
 
+  it('with --staged, reads the index: a term staged then cleaned on disk still fails', () => {
+    // Arrange
+    const dir = mkdtempSync(join(tmpdir(), 'leak-guard-'));
+    dirs.push(dir);
+    const git = (...args: string[]) =>
+      spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    git('init', '-q');
+    writeFileSync(join(dir, 'page.md'), 'two Acme Corp\n');
+    git('add', 'page.md');
+    writeFileSync(join(dir, 'page.md'), 'clean\n');
+    writeFileSync(join(dir, '.leak-denylist'), 'acme corp\n');
+
+    // Act
+    const run = spawnSync('node', [SCRIPT, '--root', dir, '--staged'], {
+      encoding: 'utf8',
+    });
+
+    // Assert
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain('page.md:1  a***');
+  });
+
+  it('with --staged, ignores a term only in an unstaged change', () => {
+    // Arrange
+    const dir = mkdtempSync(join(tmpdir(), 'leak-guard-'));
+    dirs.push(dir);
+    const git = (...args: string[]) =>
+      spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    git('init', '-q');
+    writeFileSync(join(dir, 'page.md'), 'clean\n');
+    git('add', 'page.md');
+    writeFileSync(join(dir, 'page.md'), 'two Acme Corp\n');
+    writeFileSync(join(dir, '.leak-denylist'), 'acme corp\n');
+
+    // Act
+    const run = spawnSync('node', [SCRIPT, '--root', dir, '--staged'], {
+      encoding: 'utf8',
+    });
+
+    // Assert
+    expect(run.status).toBe(0);
+  });
+
   it('passes with a one-line warning when there is no denylist', () => {
     // Arrange + Act
     const run = repo('anything\n');
