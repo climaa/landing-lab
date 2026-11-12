@@ -118,6 +118,18 @@ const preview: Preview = {
           'Docs',
           [
             'Welcome',
+            // Quality Gates straight after Welcome: written for someone seeing the
+            // repository for the first time, it is the five-minute answer to "what
+            // stops a bad change", before the pages on how each part is built.
+            'Quality Gates',
+            [
+              'Overview',
+              'SEO Guard',
+              'Visual Regression',
+              'Leak Guard',
+              'Product Impact',
+              'AI-Authored Docs',
+            ],
             // Then the system itself, narrowest first: what it's made of, how
             // it's layered, how it's checked, how it ships.
             'System Design',

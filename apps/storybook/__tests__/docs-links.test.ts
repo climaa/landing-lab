@@ -7,6 +7,7 @@ import * as path from 'node:path';
 import { toId } from 'storybook/internal/csf';
 import { describe, expect, it } from 'vitest';
 import preview from '../.storybook/preview';
+import { GATES, MEASURES } from '../src/docs/quality-gates/gates';
 
 /**
  * A docs page's sidebar path and its URL are the same string: Storybook derives
@@ -144,4 +145,88 @@ describe('every outbound link to an own property says where it came from', () =>
   it.each(proseLinks)('$file → $url', ({ url, source }) => {
     expect(new URL(url).searchParams.get('utm_source')).toBe(source);
   });
+});
+
+/**
+ * The Quality Gates pages state facts about other files: job names, measured
+ * numbers, rule ids. Prose about a file drifts the day the file changes and
+ * nothing notices, so each fact a test can hold is held here, against the file
+ * it was copied from. What stays prose is covered by the `Source:` line under
+ * every diagram, which this block also requires.
+ */
+const QUALITY_GATES_DIR = path.join(DOCS_DIR, 'quality-gates');
+const read = (relative: string) =>
+  fs.readFileSync(path.join(REPO_ROOT, relative), 'utf8');
+
+const prYml = read('.github/workflows/pr.yml');
+const jobsBlock = prYml.slice(prYml.indexOf('\njobs:'));
+/** Two-space keys under `jobs:` are the job ids. */
+const prJobs = [...jobsBlock.matchAll(/^ {2}([a-z][a-z0-9-]*):\s*$/gm)].map(
+  ([, id]) => id,
+);
+/** A `checks` leg is `name: <id>,` inside the matrix, inline or spread over lines. */
+const prLegs = [...jobsBlock.matchAll(/\bname: ([a-z][a-z0-9-]*),/g)].map(([, id]) => id);
+
+const readme = read('README.md');
+/** The README table row a measure was copied from, found by its label cell. */
+const readmeRow = (label: string) =>
+  readme.split('\n').find((line) => line.startsWith(`| ${label} `)) ?? '';
+
+const ruleSources = fs
+  .readdirSync(path.join(REPO_ROOT, 'packages/seo-guard/src/rules'))
+  .map((file) => read(`packages/seo-guard/src/rules/${file}`))
+  .join('\n');
+const documentedRules = [
+  ...fs
+    .readFileSync(path.join(QUALITY_GATES_DIR, 'SeoGuard.mdx'), 'utf8')
+    .matchAll(/^\| `([a-z]+(?:-[a-z]+)+)`/gm),
+].map(([, id]) => id ?? '');
+
+/** Each `<Mermaid …/>` on a page, with the text that follows it. The chart
+ *  ends at its closing `` `} ``: a `<br/>` inside it is not the tag's end. */
+const splitDiagram = (segment: string) => {
+  const end = segment.indexOf('/>', segment.indexOf('`}'));
+
+  return { chart: segment.slice(0, end), after: segment.slice(end + 2).trimStart() };
+};
+const diagrams = mdxFilesIn(QUALITY_GATES_DIR).flatMap((file) =>
+  fs
+    .readFileSync(file, 'utf8')
+    .split('<Mermaid')
+    .slice(1)
+    .map((segment) => ({
+      file: path.relative(REPO_ROOT, file),
+      ...splitDiagram(segment),
+    })),
+);
+/** Node ids as these pages write them: capitals before a shape bracket. */
+const nodeIds = (chart: string) =>
+  new Set([...chart.matchAll(/\b([A-Z]{1,3})\s*[[{(]/g)].map(([, id]) => id));
+
+describe('quality gates docs', () => {
+  it.each(GATES)('$name is a $kind in pr.yml', ({ name, kind }) => {
+    expect(kind === 'job' ? prJobs : prLegs).toContain(name);
+  });
+
+  it.each(MEASURES)('"$label" is the README row it was copied from', (measure) => {
+    const row = readmeRow(measure.label);
+    expect(row).toContain(measure.before);
+    expect(row).toContain(`**${measure.after}`);
+  });
+
+  it('documents some SEO rules', () => {
+    expect(documentedRules.length).toBeGreaterThan(0);
+  });
+
+  it.each(documentedRules)('rule %s is written in packages/seo-guard', (id) => {
+    expect(ruleSources).toContain(`rule: '${id}'`);
+  });
+
+  it.each(diagrams)(
+    'a diagram on $file has a Source: line and at most 12 nodes',
+    (diagram) => {
+      expect(diagram.after.startsWith('Source:')).toBe(true);
+      expect(nodeIds(diagram.chart).size).toBeLessThanOrEqual(12);
+    },
+  );
 });
