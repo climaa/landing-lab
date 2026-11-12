@@ -9,6 +9,10 @@
 // portafolio's, which has run its gate this way from the start; the checks are
 // the ones `pr.yml` ran, so nothing that was gated before goes ungated.
 //
+// Not here: `scripts/leak-guard.mjs`. Its denylist is gitignored, so in CI and
+// in a `--at` worktree it could only pass without reading anything; it runs in
+// `.husky/pre-commit`, against the index, on the machine that holds the list.
+//
 // `checksMatrix` below still builds a CI matrix from this list, for the day the
 // workflows are switched back on: one list, so a hook and a workflow cannot
 // become two grammars that drift. A slow check added here is paid on every push
@@ -108,13 +112,6 @@ export const CHECKS = [
     command: 'pnpm turbo run build --filter=@lab/web && node scripts/seo-check.mjs',
     tier: 'fast',
     why: 'The built category pages read as a crawler reads them: the sitemap passes packages/seo-guard, and /before still fails it.',
-  },
-  {
-    name: 'leak',
-    job: 'checks',
-    command: 'node scripts/leak-guard.mjs',
-    tier: 'fast',
-    why: 'No tracked file names what a gitignored .leak-denylist lists: the lab is public and its brand fictional.',
   },
   {
     name: 'boards',

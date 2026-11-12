@@ -62,9 +62,10 @@ example are in [`packages/seo-guard/README.md`](packages/seo-guard/README.md).
 ## The gate
 
 `pnpm gate` runs before every push (Husky) and as `pr.yml` on every pull request: lint,
-typecheck, build, test, format, complexity ≤ 20, the SEO guard, a leak guard, the design
-boards, Sandcastle's own suite and the e2e suite. `pnpm gate --tier full` adds visual
-regression in the pinned container.
+typecheck, build, test, format, complexity ≤ 20, the SEO guard, the design boards,
+Sandcastle's own suite and the e2e suite. `pnpm gate --tier full` adds visual regression in
+the pinned container. The leak guard is a local pre-commit check (`.husky/pre-commit`): its
+denylist is gitignored, so CI does not run it, on purpose.
 
 Seeded from [`acceptance-gate`](https://github.com/climaa/acceptance-gate), whose pipeline
 this lab reuses. MIT licensed.
