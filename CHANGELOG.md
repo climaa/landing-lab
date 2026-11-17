@@ -5,6 +5,8 @@ written up and moved under its version.
 
 ## Unreleased
 
+- Next moves to 16.4.6 and glob 13 / minimatch 10 leave the tree (GHSA-mfr8-8qww-v76h, GHSA-3g3m-2fjr-6pw4, GHSA-g3hv-75wg-m249). Next 16.3.0–16.4.4 could hand one root param's `'use cache'` result to another when the same function is also reached through `unstable_cache()` on a cold start; glob <=14.0.1 kept walking after its AbortSignal fired; minimatch <11.0.1 amplified `**/../` patterns. Sentry moves to ^11.12, whose bundler plugins already ask for glob 14, and overrides in `pnpm-workspace.yaml` lift the parents that still pin the old majors, each with its exit condition beside it. Ported from climaa/acceptance-gate#719.
+
 ## 0.1.0 — 2026-11-12
 
 A star rating drawn as one named image instead of five unnamed ones, measured on the page
