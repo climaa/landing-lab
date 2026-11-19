@@ -29,7 +29,7 @@ trace reached, and light and dark are compared only when both reached as far.
 ### The capture matrix
 
 Every Storybook story under `packages/ui/src/{atoms,molecules,organisms,templates}/`,
-and every story under `apps/visual-diff-ui/app/` as the `screens` tier, is captured across a tier-dependent axis of viewport and theme, defined once in
+and every story under `apps/web/app/` as the `screens` tier, is captured across a tier-dependent axis of viewport and theme, defined once in
 `src/policy.mjs` and consumed identically by capture, Storybook's own preview decorator,
 and the atomic-design boundary lint — one set of numbers, named once:
 
@@ -59,11 +59,11 @@ id two builds both list is refused, since one id names one baseline. The first b
 list stories; a later one that lists none yet (a package whose first story has not landed)
 is read as none, and the report warns about it.
 
-`screens` is a whole page of the console, drawn by a story beside the route it stands
-for (`apps/visual-diff-ui/app/_screens/`). The tier's roots are `APP_ROOTS` in
-`src/policy.mjs`, and this repository names one, the console: here it is the product, so
-its pages are photographed on purpose. A child project lists its own app there and keeps
-the console out.
+`screens` is a whole page of an app, drawn by a story beside the route it stands for
+(`apps/web/app/_screens/`). The tier's roots are `APP_ROOTS` in `src/policy.mjs`, and
+this repository names one, `apps/web`: the landing pages are its product. The console is
+left out, since it is maintained in acceptance-gate and copied here as a tool
+(designs/STANDARD.md, rule 7).
 
 Each shot is keyed `{tier}__{viewport}__{theme}__{storyId}.png` — Storybook ids are
 `[a-z0-9-]` only, so the `__` separator can't collide — and lands in

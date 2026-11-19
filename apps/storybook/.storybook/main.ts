@@ -10,19 +10,14 @@ import remarkGfm from 'remark-gfm';
 // FAQ, "extensionless imports in storybook/main.ts"); tsconfig.json allows it.
 import { analyticsHead } from './analytics-head.ts';
 import { linkPreviewHead } from './link-preview-head.ts';
-import { projectName } from '../../visual-diff-ui/scripts/project-name.mjs';
 
 /** The apps directory: every storied app's root sits under it. */
 const APPS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-/** The console, whose header names the project and whose board addresses are
- *  swapped for static files below. */
-const CONSOLE_DIR = join(APPS_DIR, 'visual-diff-ui');
-
 /** Each storied app's root. Every one maps `@/*` to itself in its tsconfig, which is
  *  why `@/…` is resolved by {@link appAlias} rather than by an alias entry. The
  *  same apps, in the same order, as the policy's `APP_ROOTS`. */
-const STORIED_APPS = ['visual-diff-ui', 'web'].map((app) => join(APPS_DIR, app));
+const STORIED_APPS = ['web'].map((app) => join(APPS_DIR, app));
 
 /** Forward slashes whatever the platform: Vite hands ids over posix-style. */
 const posix = (path: string) => path.replaceAll('\\', '/');
@@ -39,21 +34,6 @@ export const appRootFor = (importer: string): string | undefined => {
   const path = posix(importer);
 
   return STORIED_APPS.find((root) => path.startsWith(`${posix(root)}/`));
-};
-
-/** The console's board addresses, swapped for the static files (design-urls.ts). */
-const DESIGN_URLS = join(dirname(fileURLToPath(import.meta.url)), 'design-urls.ts');
-
-/**
- * The app modules a story cannot load as they are, each swapped for a file beside
- * this config that answers the same exports in a browser:
- *
- * - the console's `@/lib/design-urls`: a board is served by a route with a query,
- *   which a static build cannot answer, so a screen reads the same files off
- *   `/designs` instead.
- */
-const SWAPS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  [CONSOLE_DIR]: { '@/lib/design-urls': DESIGN_URLS },
 };
 
 /**
@@ -73,31 +53,10 @@ const appAlias = (): PluginOption => ({
     // Left to Vite, which fails naming the file that wrote it: better than a guess.
     if (root === undefined) return null;
 
-    const swap = SWAPS[root]?.[source];
-    if (swap !== undefined) return swap;
-
     // Handed back to Vite: picking `.tsx`, `.ts` or a directory index is its job.
     return this.resolve(join(root, source.slice(2)), importer, { skipSelf: true });
   },
 });
-
-/** The sample fixtures a screen's screenshots come from, served at the console's
- *  own shot routes: those routes take a path, so a static directory answers them
- *  byte for byte. Only what a screen story draws — the report it opens and the
- *  one set that ships shots. */
-const SCREEN_REPORTS = ['main-2026-10-13__main-2026-09-17'];
-const SCREEN_SETS = ['main-2026-08-30'];
-
-const screenShots = [
-  ...SCREEN_REPORTS.map((id) => ({
-    from: `../../visual-diff-ui/fixtures/reports/${id}/shots`,
-    to: `/api/shots/${id}`,
-  })),
-  ...SCREEN_SETS.map((label) => ({
-    from: `../../visual-diff-ui/fixtures/sets/${label}`,
-    to: `/api/sets/${label}/shots`,
-  })),
-];
 
 /** The page the root redirect lands on, whose words a shared link previews with. */
 const WELCOME_MDX = join(
@@ -110,8 +69,10 @@ const WELCOME_MDX = join(
 
 const config: StorybookConfig = {
   // Resolved against this directory, not the workspace root: three levels up is
-  // the repo. The design system's stories, the console's screens, then this
-  // app's own docs pages.
+  // the repo. The design system's stories, the landing pages' screens, then this
+  // app's own docs pages. The console's pages have no story: the console is
+  // maintained in acceptance-gate and copied here as a tool, not as this repo's
+  // product (designs/STANDARD.md, rule 7).
   //
   // A story glob goes only where `tierOf` (@lab/visual-diff/policy) can place
   // what it finds, and the reason is not taste. A story outside those roots does
@@ -131,7 +92,6 @@ const config: StorybookConfig = {
   // rather than leaving this to a bare exit 2 in the differ.
   stories: [
     '../../../packages/ui/src/**/*.stories.tsx',
-    '../../visual-diff-ui/app/**/*.stories.tsx',
     '../../web/app/**/*.stories.tsx',
     '../src/**/*.mdx',
   ],
@@ -141,13 +101,10 @@ const config: StorybookConfig = {
   // module doesn't get Vite's asset-URL rewrite applied here — it resolves to
   // the raw module namespace object instead of a string, `?url` included.
   // staticDirs sidesteps that pipeline entirely.
-  // A screen's shots ride the same mechanism, at the addresses the console's
-  // components build (`lib/shots.ts`), so no story rewrites a URL.
   // The before page's star and avatar images ride it too, at the address the
   // web app serves them.
   staticDirs: [
     { from: '../../../designs/exports', to: '/designs' },
-    ...screenShots,
     { from: '../../web/public/before', to: '/before' },
   ],
   // addon-docs: autodocs (`tags: ['autodocs']` in preview.ts) plus the thirteen
@@ -212,8 +169,9 @@ const config: StorybookConfig = {
   // when both are set the deprecated `rollupOptions` alias loses — a hook put
   // there is never called. Vite 8.3.1 is where that started to show.
   //
-  // A screen renders the console's client components, and those call Next's
-  // `useRouter()`. Next 16.4 reads `parentRenderTree` off the LayoutRouterContext
+  // The patch was carried for the console's screen stories, whose client components
+  // call Next's `useRouter()`; those stories are gone (designs/STANDARD.md, rule 7),
+  // and it stays until a story-side check shows no remaining story needs it. Next 16.4 reads `parentRenderTree` off the LayoutRouterContext
   // the framework mounts, which `@storybook/nextjs-vite` 10.5–10.6 does not provide, so
   // `patches/@storybook__nextjs-vite@10.6.2.patch` adds it. The patch is keyed to
   // that exact version, so a bump leaves it unused, which pnpm refuses: the bump
@@ -227,14 +185,6 @@ const config: StorybookConfig = {
 
     return {
       ...viteConfig,
-      // What the console's next.config.mjs inlines for its build, so a screen
-      // story's header names the project the way the deployed console does.
-      define: {
-        ...viteConfig.define,
-        'process.env.VISUAL_DIFF_PROJECT': JSON.stringify(
-          projectName(join(CONSOLE_DIR, '..', '..')),
-        ),
-      },
       plugins: [...(viteConfig.plugins ?? []), appAlias()],
       build: {
         ...viteConfig.build,

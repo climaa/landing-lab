@@ -30,15 +30,9 @@ describe('a `@/` specifier', () => {
     expect(appRootFor(importer)).toBe(appRoot);
   });
 
-  // The prefix trap: `apps/visual-diff-ui-archive` must not be read as `apps/visual-diff-ui`.
+  // The prefix trap: `apps/web-archive` must not be read as `apps/web`.
   it('written in an app whose name starts with a storied one resolves to none', () => {
-    const importer = path.join(
-      REPO_ROOT,
-      'apps',
-      'visual-diff-ui-archive',
-      'app',
-      'page.tsx',
-    );
+    const importer = path.join(REPO_ROOT, 'apps', 'web-archive', 'app', 'page.tsx');
 
     expect(appRootFor(importer)).toBeUndefined();
   });
@@ -50,7 +44,7 @@ describe('a `@/` specifier', () => {
   });
 
   it('written with Windows separators still finds its app', () => {
-    const appRoot = path.join(REPO_ROOT, 'apps', 'visual-diff-ui');
+    const appRoot = path.join(REPO_ROOT, 'apps', 'web');
     const importer = path.join(appRoot, 'app', 'page.tsx').replaceAll('/', '\\');
 
     expect(appRootFor(importer)).toBe(appRoot);

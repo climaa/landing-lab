@@ -144,11 +144,12 @@ describe('defaultBoard', () => {
   });
 
   // One app's screens: a project with a single app keeps `05-screens`
-  // (designs/STANDARD.md), so the console's screens open on its first page. So
-  // does a screen whose app the policy does not name.
+  // (designs/STANDARD.md), but this one has not drawn it yet, so a screen with no
+  // tile map read opens on the first board the picker lists. So does a screen
+  // whose app the policy does not name.
   it.each([
-    ['screens-visual-diff-ui-dashboard--sample', '05-screens-1'],
-    ['screens-garden-reader-plantscreen--default', '05-screens-1'],
+    ['screens-web-after--default', '01-atoms'],
+    ['screens-garden-reader-plantscreen--default', '01-atoms'],
   ] as const)('opens the screen %s on %s', (id, board) => {
     const chosen = defaultBoard(
       { tier: 'screens', key: `screens__mobile__dark__${id}` },
@@ -176,20 +177,15 @@ describe('tierBoards', () => {
 });
 
 describe('variantBoards', () => {
-  // A project with one app keeps `05-screens` (designs/STANDARD.md): the
-  // console's screens have no board of their own app, so they open on every
-  // page of the screens board, in order.
-  it("is every page of the screens board for the console's screens", () => {
-    const key = 'screens__desktop__light__screens-visual-diff-ui-dashboard--sample';
+  // A project with one app keeps `05-screens` (designs/STANDARD.md): the web
+  // app's screens have no board of their own app, so they fall back to the
+  // screens board, and with none drawn yet there is no board to name.
+  it("is the screens board's pages, none yet, for the web app's screens", () => {
+    const key = 'screens__desktop__light__screens-web-after--default';
 
     const boards = variantBoards({ tier: 'screens', key });
 
-    expect(boards).toEqual([
-      '05-screens-1',
-      '05-screens-2',
-      '05-screens-3',
-      '05-screens-4',
-    ]);
+    expect(boards).toEqual([]);
   });
 
   it("falls back to the tier's pages for a screen whose app the policy does not name", () => {

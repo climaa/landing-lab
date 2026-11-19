@@ -3,11 +3,11 @@ import type { DesignBoard } from './comparison';
 /**
  * Where a design board and its two sidecars are served (app/api/designs/route.ts).
  *
- * Its own module so a screen story can swap it whole: a static Storybook build has
- * no route to answer a query, and serves the same files at `/designs/<file>`
- * instead (apps/storybook/.storybook/design-urls.ts). Imported as
- * `@/lib/design-urls` everywhere, never relatively, because that specifier is
- * what the swap matches.
+ * Its own module so a screen story could swap it whole, as acceptance-gate's
+ * Storybook does. This repository stories none of the console's pages
+ * (designs/STANDARD.md, rule 7), so nothing swaps it here; it is imported as
+ * `@/lib/design-urls` everywhere all the same, which keeps the file identical in
+ * shape to the parent's.
  */
 
 /** Where a board's bytes are served. */

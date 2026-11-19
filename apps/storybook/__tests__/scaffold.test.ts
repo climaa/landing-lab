@@ -56,7 +56,7 @@ describe('story globs', () => {
  *
  * The differ files a baseline under the tier it reads out of the story's
  * `importPath`. `tierOf` returns `null` for a path outside
- * `packages/ui/src/<tier>/` and the console's `app/` (its `screens`), and
+ * `packages/ui/src/<tier>/` and the `app/` of each `APP_ROOTS` app (its `screens`), and
  * `variantsOf` throws `IndexError` rather than
  * shoot it under a layer it is not in — which `commands.mjs` maps to
  * `EXIT.broken`. So a single `.stories.tsx` glob pointing anywhere else does not
@@ -99,9 +99,7 @@ describe('the corpus boundary', () => {
   // says so, instead of guarding a hazard that no longer exists.
   it('is the boundary tierOf enforces', () => {
     expect(tierOf('packages/ui/src/atoms/Badge/Badge.stories.tsx')).toBe('atoms');
-    expect(tierOf('../visual-diff-ui/app/_screens/Dashboard.stories.tsx')).toBe(
-      'screens',
-    );
+    expect(tierOf('../web/app/_screens/After.stories.tsx')).toBe('screens');
     expect(tierOf('apps/storybook/src/RunPanel.stories.tsx')).toBeNull();
     expect(tierOf('../e2e/features/Page.stories.tsx')).toBeNull();
   });

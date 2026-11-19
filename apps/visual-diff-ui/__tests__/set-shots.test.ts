@@ -215,7 +215,7 @@ describe('groupShots', () => {
    */
   it("files screens shots under their app's section, after the tiers", () => {
     const shots = [
-      shot('screens__mobile__dark__screens-visual-diff-ui-dashboard--sample'),
+      shot('screens__mobile__dark__screens-web-after--default'),
       shot('atoms__desktop__light__atoms-badge--accent'),
     ];
 
@@ -223,7 +223,7 @@ describe('groupShots', () => {
 
     expect(sections.map(({ section }) => section.label)).toEqual([
       'atoms',
-      'Screens / Visual-diff-ui',
+      'Screens / Web',
     ]);
   });
 
@@ -232,13 +232,13 @@ describe('groupShots', () => {
   it('files a screen of an app the policy does not name under other', () => {
     const shots = [
       shot('screens__mobile__dark__screens-reading--default'),
-      shot('screens__mobile__dark__screens-visual-diff-ui-dashboard--sample'),
+      shot('screens__mobile__dark__screens-web-after--default'),
     ];
 
     const sections = groupShots(shots);
 
     expect(sections.map(({ section }) => section.label)).toEqual([
-      'Screens / Visual-diff-ui',
+      'Screens / Web',
       'Screens / Other',
     ]);
   });

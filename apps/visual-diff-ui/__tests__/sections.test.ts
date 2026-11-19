@@ -15,12 +15,12 @@ import type { Variant } from '../lib/summary';
  */
 
 describe('SECTIONS', () => {
-  // The tab reads like Storybook's sidebar: `Screens/Visual-diff-ui/…` there,
-  // `Screens / Visual-diff-ui` here.
+  // The tab reads like Storybook's sidebar: `Screens/Web/…` there,
+  // `Screens / Web` here.
   it("labels an app's section as Storybook titles its screens", () => {
-    const section = SECTIONS.find((entry) => entry.key === 'screens-visual-diff-ui');
+    const section = SECTIONS.find((entry) => entry.key === 'screens-web');
 
-    expect(section?.label).toBe('Screens / Visual-diff-ui');
+    expect(section?.label).toBe('Screens / Web');
   });
 
   it("walks the tiers, then the policy's apps, then other", () => {
@@ -50,7 +50,6 @@ describe('SECTIONS', () => {
  * fails if the policy does.
  */
 const DECLARED_APPS: Record<App, true> = {
-  'visual-diff-ui': true,
   web: true,
 };
 
@@ -85,9 +84,9 @@ describe('sectionOf', () => {
 /** The keys one capture of every kind of section would write. */
 const KEYS = [
   'screens__desktop__light__screens-garden-reader-plantscreen--default',
-  'screens__desktop__light__screens-visual-diff-ui-report--changed',
+  'screens__desktop__light__screens-web-compare--default',
   'organisms__mobile__dark__organisms-table--default',
-  'screens__desktop__light__screens-visual-diff-ui-dashboard--sample',
+  'screens__desktop__light__screens-web-after--default',
   'atoms__desktop__light__atoms-badge--accent',
   'templates__mobile__dark__templates-posttemplate--default',
 ];

@@ -46,17 +46,7 @@ export class ShotView {
   /** A design board by its picker name, as the pane's image names it. */
   board(
     name:
-      | 'atoms'
-      | 'molecules'
-      | 'organisms'
-      | 'templates'
-      | 'screens 1'
-      | 'screens 2'
-      | 'screens 3'
-      | 'screens 4'
-      | 'pages'
-      | 'console'
-      | 'flows',
+      'atoms' | 'molecules' | 'organisms' | 'templates' | 'pages' | 'console' | 'flows',
   ): Locator {
     return this.root.getByRole('img', { name: `the ${name} design board` });
   }
