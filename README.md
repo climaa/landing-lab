@@ -63,7 +63,7 @@ example are in [`packages/seo-guard/README.md`](packages/seo-guard/README.md).
 | `packages/ui`                                 | The design system, token-only styling. `atoms/RatingStars` is the fix                       |
 | `apps/web`                                    | Taskbloom's category page: `/before`, `/after`, their alternates, `/compare` and `/api/seo` |
 | `packages/seo-guard`                          | The guard: library, CLI and the `seo` gate check                                            |
-| `packages/visual-diff`, `apps/visual-diff-ui` | Visual regression: 260 committed baselines and the console that reviews them                |
+| `packages/visual-diff`, `apps/visual-diff-ui` | Visual regression: 232 committed baselines and the console that reviews them                |
 | `apps/e2e`                                    | The acceptance suite: 73 Gherkin scenarios on desktop and mobile                            |
 | `designs/`                                    | The design boards. The board comes before the code                                          |
 

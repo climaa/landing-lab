@@ -15,13 +15,13 @@ fictional. Seeded from [`acceptance-gate`](https://github.com/climaa/acceptance-
 .sandcastle/           the autonomous orchestrator, inherited and inert here (no .env)
 .claude/skills/        six agent skills, committed so a sandbox sees them
 apps/
-  storybook/           Storybook 10 for packages/ui and the console's screens
+  storybook/           Storybook 10 for packages/ui and the landing pages' screens
   visual-diff-ui/      the visual-diff console: sets, reports, the shot view
   web/                 Taskbloom's garden designers page: /before, /after and their addresses
   e2e/                 playwright-bdd acceptance suite; features/** is human-owned
 packages/
   ui/                  atoms · molecules · organisms · templates, token-only styling
-  visual-diff/         the visual-regression CLI + 260 committed baselines
+  visual-diff/         the visual-regression CLI + 232 committed baselines
   logger/              logging, Bugsink adapter, the analytics opt-out
   seo-guard/           a crawler-eye check of canonicals, hreflang and JSON-LD (CLI + library)
   links/               URL builders the console imports
@@ -57,5 +57,5 @@ scripts/               the gate, complexity ceiling, boards, index and leak chec
   and `.sandcastle/` 52
 - `apps/e2e`: 73 acceptance scenarios (54 on the visual-diff console, 19 on the landing
   pages) and 1 local-lane scenario
-- `packages/visual-diff`: 260 committed baselines across atoms, molecules, organisms,
-  templates and the console's screens
+- `packages/visual-diff`: 232 committed baselines across atoms, molecules, organisms,
+  templates and the landing pages' screens

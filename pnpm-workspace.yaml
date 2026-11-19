@@ -1,6 +1,6 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
 # pnpm already refuses this repository's own `engines`; this makes a DEPENDENCY whose
 # `engines.node` excludes the running Node an install failure instead of a warning,
 # as the gate refuses a Node off .nvmrc (scripts/gate/node-version.mjs): a runtime a
@@ -34,8 +34,9 @@ overrides:
   '@joshwooding/vite-plugin-react-docgen-typescript>glob': ^14.0.5
   '@typescript-eslint/typescript-estree>minimatch': ^11.0.8
 # Next 16.4's useRouter() reads parentRenderTree off the router context Storybook
-# mounts, and @storybook/nextjs-vite 10.5–10.6 does not set it, so every screen story
-# (apps/visual-diff-ui/app/_screens) failed to render. Remove this entry once a
-# release sets the field; apps/storybook/.storybook/main.ts says the same.
+# mounts, and @storybook/nextjs-vite 10.5–10.6 does not set it, so the console's screen
+# stories failed to render. Those stories are gone (designs/STANDARD.md, rule 7); the
+# entry stays until no remaining story is shown to need it, or a release sets the
+# field. apps/storybook/.storybook/main.ts says the same.
 patchedDependencies:
   '@storybook/nextjs-vite@10.6.2': patches/@storybook__nextjs-vite@10.6.2.patch

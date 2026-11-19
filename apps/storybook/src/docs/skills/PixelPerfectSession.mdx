@@ -65,7 +65,8 @@ How each one is built:
 - **`screenshot`** is fetched from the console that served the URL, so any set reads the same
   way.
 - **A `screens` variant** resolves just as well: its source is under
-  `apps/visual-diff-ui/app/_screens/`, and its tile is on one of the pages `05-screens-1…4`.
+  `apps/web/app/_screens/`, and its tile is on a page of the `05-screens` board once one is
+  drawn (`designs/undrawn-stories.json` lists the stories still waiting for theirs).
 
 ## Before you run it
 
@@ -141,7 +142,7 @@ it is followed every time:
    - **against a foundation** (board 00, `tokens.css`): keep the foundation and list the value
      for the owner.
 4. **Fix on-token.** The CSS goes in `packages/ui/src/<tier>/` for the four component tiers, or
-   in the console's `apps/visual-diff-ui/app/styles/` for a screen. When the gap is inside a
+   in the web app's `apps/web/app/` sheets (`globals.css`, `lab.css`) for a screen. When the gap is inside a
    `packages/ui` component the screen composes, the fix goes in that component.
 5. **Verify, then ask.** Build Storybook, run the differ's check in the container and read its
    summary. The change must explain every `changed` variant. The session **stops here** and

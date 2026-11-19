@@ -128,7 +128,9 @@ describe('tierOf', () => {
     expect(tier).toBeNull();
   });
 
-  it("places a story under the console's app directory in screens", () => {
+  // The console is a tool copied from acceptance-gate, not this repo's product, so
+  // a story under its route tree is no screen here (designs/STANDARD.md, rule 7).
+  it("returns null for a story under the console's app directory", () => {
     const paths = [
       'apps/visual-diff-ui/app/DashboardScreen.stories.tsx',
       '../visual-diff-ui/app/DashboardScreen.stories.tsx',
@@ -136,7 +138,7 @@ describe('tierOf', () => {
 
     const tiers = paths.map((path) => tierOf(path));
 
-    expect(tiers).toEqual(['screens', 'screens']);
+    expect(tiers).toEqual([null, null]);
   });
 
   it("places a story in the web app's route tree as a screen", () => {
@@ -420,8 +422,9 @@ describe('LEDGER.exempt', () => {
 });
 
 describe('APPS', () => {
-  // Every app that serves web routes is a screens app: the console and the
-  // category pages. `apps/storybook` and `apps/e2e` serve none.
+  // Every app of this repo's own that serves web routes is a screens app: the
+  // category pages. The console is a copied tool (designs/STANDARD.md, rule 7), and
+  // `apps/storybook` and `apps/e2e` serve none.
   it('names every app whose route tree places under the screens tier', () => {
     const placed = ['visual-diff-ui', 'web', 'storybook', 'e2e'].filter(
       (app) => tierOf(`apps/${app}/app/page.stories.tsx`) === APP_TIER,
@@ -431,20 +434,17 @@ describe('APPS', () => {
   });
 
   it('names each app by its directory under apps/', () => {
-    expect(APPS).toEqual(['visual-diff-ui', 'web']);
+    expect(APPS).toEqual(['web']);
   });
 });
 
 describe('appOf', () => {
   it('reads the app off a screen story id', () => {
-    const ids = [
-      'screens-visual-diff-ui-dashboard--sample',
-      'screens-visual-diff-ui-report--changed',
-    ];
+    const ids = ['screens-web-after--default', 'screens-web-compare--default'];
 
     const apps = ids.map((id) => appOf(id));
 
-    expect(apps).toEqual(['visual-diff-ui', 'visual-diff-ui']);
+    expect(apps).toEqual(['web', 'web']);
   });
 
   it('answers null for an app the policy does not have', () => {

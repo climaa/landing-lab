@@ -133,15 +133,12 @@ const UI_SRCS = [
 
 /** The app directories whose stories are `screens`, named one by one rather than
  *  matched as every app's `app/`: every app that serves web routes, one section
- *  each (designs/STANDARD.md, "Every route is a screen"). Here the console comes
- *  first, then landing-lab's own category pages, `apps/web`. A child lists its
- *  own apps and captures its console review-only, since there it is the tool rather
- *  than the thing shot.
+ *  each (designs/STANDARD.md, "Every route is a screen"). Here that is
+ *  landing-lab's own category pages, `apps/web`. The console is left out: its code
+ *  is maintained in acceptance-gate and copied here as a tool, not as this repo's
+ *  product, so it has no screens here (designs/STANDARD.md, rule 7).
  *  @type {readonly (readonly string[])[]} */
-export const APP_ROOTS = [
-  ['apps', 'visual-diff-ui', 'app'],
-  ['apps', 'web', 'app'],
-];
+export const APP_ROOTS = [['apps', 'web', 'app']];
 
 /** The name an {@link APP_ROOTS} entry gives its app: the directory under `apps/`,
  *  which is also what a screen's Storybook title names (`Screens/<App>/…`) and what
@@ -181,7 +178,7 @@ export function appOf(storyId, apps = APPS) {
 }
 
 /** Where Storybook runs, and so what a `./` or `../` `importPath` is relative to:
- *  `../visual-diff-ui/app/…` is `apps/visual-diff-ui/app/…` read from here. */
+ *  `../web/app/…` is `apps/web/app/…` read from here. */
 const STORYBOOK_DIR = ['apps', 'storybook'];
 
 /** @param {readonly string[]} segments @param {readonly string[]} run

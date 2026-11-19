@@ -422,7 +422,7 @@ describe('setFilterQuery', () => {
  */
 describe('a set holding screens', () => {
   const SCREENS = [
-    'screens__mobile__dark__screens-visual-diff-ui-dashboard--sample',
+    'screens__mobile__dark__screens-web-after--default',
     'screens__mobile__dark__screens-garden-reader-plantscreen--default',
   ];
 
@@ -447,7 +447,7 @@ describe('a set holding screens', () => {
       link.firstChild?.textContent?.trim(),
     );
 
-    expect(labels).toEqual(['atoms', 'Screens / Visual-diff-ui', 'Screens / Other']);
+    expect(labels).toEqual(['atoms', 'Screens / Web', 'Screens / Other']);
   });
 
   it('points every tab at a heading that is on the page', () => {
